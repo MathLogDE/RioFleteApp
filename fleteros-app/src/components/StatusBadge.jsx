@@ -1,5 +1,6 @@
 const ETIQUETAS = {
   pendiente: "Pendiente",
+  recibido: "Recibido",
   asignado: "Asignado",
   enviado: "Enviado",
   en_camino: "En camino",

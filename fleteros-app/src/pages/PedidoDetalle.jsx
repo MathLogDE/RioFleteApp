@@ -23,7 +23,8 @@ const COLS =
   "id, numero_pedido, cliente_nombre, cliente_documento, cliente_telefono, " +
   "direccion_entrega, monto, notas, estado_actual, fletero_id, metodo_pago, " +
   "pago_validado, cobra_fletero, monto_a_cobrar, cobro_realizado, " +
-  "validacion_lugar, zonas(nombre)";
+  "validacion_lugar, metodo_entrega, zonas(nombre), " +
+  "pedido_articulos(codigo, descripcion, cantidad)";
 
 export default function PedidoDetalle() {
   const { id } = useParams();
@@ -249,6 +250,23 @@ export default function PedidoDetalle() {
           )}
           {pedido.notas && <div className="nota"><b>Nota:</b> {pedido.notas}</div>}
         </div>
+
+        {pedido.pedido_articulos?.length > 0 && (
+          <div className="detail-block">
+            <p className="section-label" style={{ margin: "0 0 10px" }}>
+              Artículos a entregar
+            </p>
+            {pedido.pedido_articulos.map((a, i) => (
+              <div className="art-row" key={i}>
+                <span className="art-cant">{a.cantidad}×</span>
+                <span className="art-desc">
+                  {a.descripcion}
+                  {a.codigo ? <span className="art-cod"> · {a.codigo}</span> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {errorMsg && <div className="error-box" style={{ marginBottom: 14 }}>{errorMsg}</div>}
 

@@ -153,6 +153,32 @@ button {
   color: var(--ink-soft);
 }
 
+/* ---------- Artículos a entregar ---------- */
+.art-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+.art-row:last-child {
+  border-bottom: none;
+}
+.art-cant {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 34px;
+}
+.art-desc {
+  color: var(--ink-soft);
+}
+.art-cod {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* ---------- Captura de evidencia ---------- */
 .evid {
   border: 1.5px dashed var(--line-strong);
@@ -308,6 +334,7 @@ button {
   white-space: nowrap;
 }
 .badge[data-estado="pendiente"],
+.badge[data-estado="recibido"],
 .badge[data-estado="asignado"] {
   color: var(--st-pendiente);
   background: #eef1f4;
