@@ -15,10 +15,13 @@ export default function Login() {
       password
     });
     if (error) {
+      const m = error.message || "";
       setError(
-        error.message === "Invalid login credentials"
+        m.includes("Invalid login credentials")
           ? "Email o contraseña incorrectos."
-          : "No se pudo iniciar sesión. Probá de nuevo."
+          : m.includes("Email not confirmed")
+          ? "El usuario no está confirmado."
+          : `No se pudo iniciar sesión: ${m}`
       );
     }
     // Si sale bien, AuthContext detecta la sesión y App redirige por rol.

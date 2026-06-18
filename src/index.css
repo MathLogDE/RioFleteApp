@@ -114,6 +114,88 @@ button {
   color: var(--ink-soft);
   border: 1px solid var(--line-strong);
 }
+.btn-danger {
+  background: transparent;
+  color: var(--st-fallido);
+  border: 1px solid var(--st-fallido);
+}
+
+/* ---------- Detalle del pedido ---------- */
+.detail-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.detail-block .row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+.detail-block .row svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+.detail-block .row b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.detail-block .nota {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 12px;
+  font-size: 0.93rem;
+  color: var(--ink-soft);
+}
+
+/* ---------- Artículos a entregar ---------- */
+.art-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+.art-row:last-child {
+  border-bottom: none;
+}
+.art-cant {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 34px;
+}
+.art-desc {
+  color: var(--ink-soft);
+}
+.art-cod {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- Captura de evidencia ---------- */
+.evid {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.evid.done {
+  border-style: solid;
+  border-color: var(--st-entregado);
+  background: var(--st-entregado-bg);
+  color: var(--st-entregado);
+  font-weight: 600;
+}
 
 /* ---------- Inputs ---------- */
 .field {
@@ -252,13 +334,21 @@ button {
   white-space: nowrap;
 }
 .badge[data-estado="pendiente"],
+.badge[data-estado="recibido"],
 .badge[data-estado="asignado"] {
   color: var(--st-pendiente);
   background: #eef1f4;
 }
+.badge[data-estado="enviado"],
 .badge[data-estado="en_camino"] {
   color: var(--st-camino);
   background: var(--st-camino-bg);
+}
+.badge[data-estado="devolucion_pendiente"],
+.badge[data-estado="devolucion_retirada"],
+.badge[data-estado="cambiado"] {
+  color: var(--st-fallido);
+  background: var(--st-fallido-bg);
 }
 .badge[data-estado="entregado"] {
   color: var(--st-entregado);

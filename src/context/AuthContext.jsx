@@ -9,13 +9,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // Trae la fila de "perfiles" del usuario logueado.
-  // SUPUESTO de esquema: la tabla "perfiles" tiene la PK "id" igual al
-  // id del usuario de auth, más las columnas "nombre", "rol" y "sucursal_id".
-  // Si tus nombres de columna difieren, ajustá el .select() de abajo.
+  // Esquema real: PK "id" = id del usuario de auth, "nombre_completo", "rol",
+  // "activo". La sucursal NO vive acá: se vincula por la tabla
+  // "usuario_sucursales" (un usuario puede tener una o más sucursales).
   async function cargarPerfil(userId) {
     const { data, error } = await supabase
       .from("perfiles")
-      .select("id, nombre, rol, sucursal_id")
+      .select("id, nombre_completo, rol, activo")
       .eq("id", userId)
       .single();
 

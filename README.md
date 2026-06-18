@@ -1,8 +1,16 @@
 # Entregas — Fleteros (frontend)
 
 PWA para gestión y evidencia de entregas. Frontend en React + Vite, backend en
-Supabase. Esta es la primera etapa: **login + ruteo por rol + lista de pedidos
-asignados al fletero** (modo online).
+Supabase. Flujo del fletero (online): **login → pedidos asignados → detalle →
+iniciar entrega → validar pago (últimos 4 de la tarjeta, contra el servidor) →
+capturar evidencia (foto + documento, con compresión) → marcar
+entregado/fallido**, persistiendo estado y eventos en Supabase.
+
+> Antes de usar las validaciones hay que correr `sql/migracion_validaciones.sql`
+> en el SQL Editor de Supabase (agrega columnas de pago/cobro y la función
+> `validar_pago_pedido`). Los últimos 4 dígitos de la tarjeta se guardan en una
+> columna protegida que la app NO puede leer: solo los compara la función del
+> servidor. Nunca se guarda el número completo, vencimiento ni CVV.
 
 ## Stack
 
@@ -47,18 +55,20 @@ src/
   index.css                Sistema de diseño (tokens + estilos)
 ```
 
-## Supuestos de esquema a confirmar
+## Esquema (confirmado contra Supabase)
 
-El código asume estos nombres de columna. Si en tu base son distintos, hay que
-ajustarlos:
+El código usa estos nombres reales de columna:
 
-- **perfiles**: `id` (= id de auth), `nombre`, `rol`, `sucursal_id`
-  (ver `context/AuthContext.jsx`).
-- **pedidos**: `id`, `fletero_id`, `estado`, `created_at`, y datos del cliente
-  (`cliente_nombre`, `direccion`, etc. — la lista usa nombres con respaldo
-  hasta confirmar; ver `pages/FleteroPedidos.jsx`).
-- Estados de pedido usados: `pendiente`, `asignado`, `en_camino`, `entregado`,
-  `fallido`.
+- **perfiles**: `id` (= id de auth), `nombre_completo`, `rol`, `activo`.
+  La sucursal NO está acá: se vincula por `usuario_sucursales`.
+- **pedidos**: `id`, `sucursal_id`, `fletero_id`, `zona_id`, `numero_pedido`,
+  `cliente_nombre`, `cliente_documento`, `cliente_telefono`,
+  `direccion_entrega`, `monto`, `notas`, `estado_actual`, `pedido_origen_id`,
+  `created_at`, `updated_at`.
+- Estados de `pedidos.estado_actual`: `pendiente`, `asignado`, `enviado`,
+  `en_camino`, `entregado`, `fallido`, `devolucion_pendiente`,
+  `devolucion_retirada`, `cambiado`. La lista del fletero muestra solo los
+  activos: `asignado`, `enviado`, `en_camino`.
 
 ## Desplegar en Vercel
 
@@ -81,7 +91,23 @@ Falta agregar en `public/`: `icon-192.png`, `icon-512.png` e
 `icon-512-maskable.png`. Hasta entonces la app funciona, pero el ícono de
 instalación usa el favicon.
 
+## Permisos (RLS) necesarios para el fletero
+
+Para que el flujo de entrega funcione, el rol `fletero` necesita, sobre sus
+propios pedidos:
+
+- `update` en `pedidos` (columna `estado_actual`).
+- `insert` en `pedido_eventos`.
+- `insert` en `evidencias` y `insert` de objetos en el bucket `evidencias`
+  (la policy del bucket usa `storage.foldername(name)[1]` = `pedido_id`, por
+  eso la ruta del archivo arranca con el id del pedido).
+
+Si al entregar aparece un error de permisos, casi seguro falta una de estas
+policies.
+
 ## Próximo paso
 
-Detalle del pedido + escaneo del documento (PDF417) + captura de evidencia, y
-después la capa offline (IndexedDB / Dexie) y la compresión de imágenes.
+- Escaneo real del DNI (PDF417) reemplazando la foto del documento, idealmente
+  probado en un celular físico.
+- Capa offline (IndexedDB / Dexie) para entregas sin señal.
+- Panel de sucursal (carga de pedidos, asignación a fleteros).

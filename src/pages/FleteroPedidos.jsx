@@ -4,19 +4,10 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import StatusBadge from "../components/StatusBadge";
 
-// Estados que el fletero todavía tiene que trabajar (no finalizados).
-const ESTADOS_ACTIVOS = ["asignado", "en_camino", "pendiente"];
-
-// Lee un campo con varios nombres posibles. Esto hace la pantalla resistente
-// a diferencias de nombres de columna mientras confirmamos el esquema exacto.
-// Cuando confirmemos los nombres reales de "pedidos", se reemplaza por accesos
-// directos (p.cliente_nombre, etc.) y se acota el select("*").
-function campo(obj, ...claves) {
-  for (const k of claves) {
-    if (obj[k] != null && obj[k] !== "") return obj[k];
-  }
-  return null;
-}
+// Estados en los que el pedido ya está en manos del fletero y todavía no se
+// finalizó. (pendiente = aún sin asignar; entregado/fallido/devolucion/cambiado
+// = cerrados, no van en la lista de trabajo del día.)
+const ESTADOS_ACTIVOS = ["asignado", "enviado", "en_camino"];
 
 export default function FleteroPedidos() {
   const { user, perfil, signOut } = useAuth();
@@ -29,14 +20,16 @@ export default function FleteroPedidos() {
     if (!user) return;
     setEstado("cargando");
 
-    // SUPUESTO de esquema: "pedidos" tiene "fletero_id" (a quién está asignado)
-    // y "estado". RLS ya limita a lo que este usuario puede ver, pero igual
-    // filtramos por las dos cosas para traer solo lo relevante.
+    // Esquema real de "pedidos": fletero_id, estado_actual, cliente_nombre,
+    // direccion_entrega, numero_pedido, created_at. RLS ya limita lo visible,
+    // pero igual filtramos para traer solo lo relevante del fletero.
     const { data, error } = await supabase
       .from("pedidos")
-      .select("*")
+      .select(
+        "id, numero_pedido, cliente_nombre, direccion_entrega, estado_actual, created_at"
+      )
       .eq("fletero_id", user.id)
-      .in("estado", ESTADOS_ACTIVOS)
+      .in("estado_actual", ESTADOS_ACTIVOS)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -52,7 +45,7 @@ export default function FleteroPedidos() {
     cargar();
   }, [cargar]);
 
-  const nombre = perfil?.nombre || user?.email || "Fletero";
+  const nombre = perfil?.nombre_completo || user?.email || "Fletero";
 
   return (
     <div className="app-shell">
@@ -116,22 +109,15 @@ export default function FleteroPedidos() {
               onClick={() => navigate(`/pedidos/${p.id}`)}
             >
               <div className="card-top">
-                <span className="cliente">
-                  {campo(p, "cliente_nombre", "cliente", "nombre_cliente") ||
-                    "Cliente sin nombre"}
-                </span>
-                <StatusBadge estado={p.estado} />
+                <span className="cliente">{p.cliente_nombre}</span>
+                <StatusBadge estado={p.estado_actual} />
               </div>
-              <div className="dir">
-                {campo(p, "direccion", "cliente_direccion", "domicilio") ||
-                  "Sin dirección"}
-                {campo(p, "localidad", "ciudad")
-                  ? ` · ${campo(p, "localidad", "ciudad")}`
-                  : ""}
-              </div>
+              <div className="dir">{p.direccion_entrega}</div>
               <div className="meta">
                 <span>
-                  #{String(campo(p, "numero", "id")).slice(0, 8)}
+                  {p.numero_pedido
+                    ? `#${p.numero_pedido}`
+                    : `#${String(p.id).slice(0, 8)}`}
                 </span>
               </div>
             </button>
