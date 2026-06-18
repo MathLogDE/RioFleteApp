@@ -44,12 +44,30 @@ function Inicio() {
   }
 }
 
+// Si ya hay sesión, no tiene sentido mostrar el login: redirige a la raíz.
+// Esto también resuelve el redirect después de iniciar sesión: cuando el
+// login crea la sesión, esta ruta se vuelve a evaluar y manda a "/".
+function LoginRoute() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="center-screen">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (session) return <Navigate to="/" replace />;
+  return <Login />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginRoute />} />
           <Route
             path="/"
             element={
