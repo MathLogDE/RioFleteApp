@@ -5,6 +5,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import FleteroPedidos from "./pages/FleteroPedidos";
 import PedidoDetalle from "./pages/PedidoDetalle";
+import SucursalPanel from "./pages/SucursalPanel";
+import NuevoPedido from "./pages/NuevoPedido";
 
 // Decide a dónde mandar al usuario según su rol al entrar a "/".
 function Inicio() {
@@ -21,10 +23,11 @@ function Inicio() {
   switch (rol) {
     case "fletero":
       return <Navigate to="/pedidos" replace />;
-    // Los paneles de estos roles se construyen más adelante.
-    case "admin":
-    case "gerencia":
     case "encargado":
+    case "admin":
+      return <Navigate to="/sucursal" replace />;
+    // El panel de gerencia (reportes) se construye más adelante.
+    case "gerencia":
       return (
         <div className="center-screen">
           <div className="empty">
@@ -91,6 +94,22 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["fletero"]}>
                   <PedidoDetalle />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sucursal"
+              element={
+                <ProtectedRoute roles={["encargado", "admin"]}>
+                  <SucursalPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sucursal/nuevo"
+              element={
+                <ProtectedRoute roles={["encargado", "admin"]}>
+                  <NuevoPedido />
                 </ProtectedRoute>
               }
             />
