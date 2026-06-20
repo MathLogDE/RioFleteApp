@@ -7,6 +7,7 @@ import FleteroPedidos from "./pages/FleteroPedidos";
 import PedidoDetalle from "./pages/PedidoDetalle";
 import SucursalPanel from "./pages/SucursalPanel";
 import NuevoPedido from "./pages/NuevoPedido";
+import OperadorPanel from "./pages/OperadorPanel";
 
 // Decide a dónde mandar al usuario según su rol al entrar a "/".
 function Inicio() {
@@ -26,6 +27,8 @@ function Inicio() {
     case "encargado":
     case "admin":
       return <Navigate to="/sucursal" replace />;
+    case "operador":
+      return <Navigate to="/operador" replace />;
     // El panel de gerencia (reportes) se construye más adelante.
     case "gerencia":
       return (
@@ -110,6 +113,14 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["encargado", "admin"]}>
                   <NuevoPedido />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/operador"
+              element={
+                <ProtectedRoute roles={["operador", "admin"]}>
+                  <OperadorPanel />
                 </ProtectedRoute>
               }
             />

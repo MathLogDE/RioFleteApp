@@ -14,6 +14,7 @@ export default function FleteroPedidos() {
   const { user, perfil, signOut } = useAuth();
   const navigate = useNavigate();
   const [pedidos, setPedidos] = useState([]);
+  const [entregados, setEntregados] = useState([]);
   const [estado, setEstado] = useState("cargando"); // cargando | ok | error
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -39,6 +40,17 @@ export default function FleteroPedidos() {
       return;
     }
     setPedidos(data ?? []);
+
+    // Entregados recientes, para que el fletero pueda cargar la factura.
+    const { data: ent } = await supabase
+      .from("pedidos")
+      .select("id, numero_pedido, cliente_nombre, direccion_entrega, estado_actual")
+      .eq("fletero_id", user.id)
+      .eq("estado_actual", "entregado")
+      .order("created_at", { ascending: false })
+      .limit(15);
+    setEntregados(ent ?? []);
+
     setEstado("ok");
   }, [user]);
 
@@ -119,6 +131,34 @@ export default function FleteroPedidos() {
               </div>
             </button>
           ))}
+
+        {estado === "ok" && entregados.length > 0 && (
+          <>
+            <p className="section-label" style={{ marginTop: 24 }}>
+              Entregados — cargar factura
+            </p>
+            {entregados.map((p) => (
+              <button
+                key={p.id}
+                className="card"
+                onClick={() => navigate(`/pedidos/${p.id}`)}
+              >
+                <div className="card-top">
+                  <span className="cliente">{p.cliente_nombre}</span>
+                  <StatusBadge estado={p.estado_actual} />
+                </div>
+                <div className="dir">{p.direccion_entrega}</div>
+                <div className="meta">
+                  <span>
+                    {p.numero_pedido
+                      ? `#${p.numero_pedido}`
+                      : `#${String(p.id).slice(0, 8)}`}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </>
+        )}
       </main>
     </div>
   );

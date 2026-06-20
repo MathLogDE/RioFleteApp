@@ -23,7 +23,7 @@ const MOTIVOS = [
 const COLS =
   "id, numero_pedido, cliente_nombre, cliente_documento, cliente_telefono, " +
   "direccion_entrega, monto, notas, estado_actual, fletero_id, metodo_pago, " +
-  "pago_validado, cobra_fletero, monto_a_cobrar, cobro_realizado, " +
+  "pago_validado, cobra_fletero, monto_a_cobrar, cobro_realizado, pago_fletero, " +
   "validacion_lugar, metodo_entrega, zonas(nombre), " +
   "pedido_articulos(codigo, descripcion, cantidad)";
 
@@ -50,12 +50,16 @@ export default function PedidoDetalle() {
   // Cobro al fletero
   const [cobroOk, setCobroOk] = useState(false);
 
+  // Facturas (post-entrega)
+  const [facturas, setFacturas] = useState(0);
+
   // Falla
   const [modoFallo, setModoFallo] = useState(false);
   const [motivo, setMotivo] = useState("ausente");
 
   const inputFoto = useRef(null);
   const inputDoc = useRef(null);
+  const inputFactura = useRef(null);
 
   const cargar = useCallback(async () => {
     setEstado("cargando");
@@ -73,6 +77,14 @@ export default function PedidoDetalle() {
     setPagoOk(data.pago_validado === true);
     setCobroOk(data.cobro_realizado === true);
     setEstado("ok");
+
+    // Cuántas facturas ya cargó (para pedidos entregados)
+    const { count } = await supabase
+      .from("evidencias")
+      .select("id", { count: "exact", head: true })
+      .eq("pedido_id", id)
+      .eq("tipo", "factura");
+    setFacturas(count || 0);
   }, [id]);
 
   useEffect(() => {
@@ -111,13 +123,18 @@ export default function PedidoDetalle() {
 
   async function subirEvidencia(file, tipo, coincide = null) {
     setErrorMsg("");
-    setAccionEnCurso("Subiendo evidencia...");
+    setAccionEnCurso("Subiendo...");
     try {
-      const blob = await comprimirImagen(file);
-      const ruta = `${id}/${tipo}_${Date.now()}.jpg`;
+      const esPdf = file.type === "application/pdf";
+      // Las fotos se comprimen; los PDF (facturas) se suben tal cual.
+      const cuerpo = esPdf ? file : await comprimirImagen(file);
+      const ext = esPdf ? "pdf" : "jpg";
+      const contentType = esPdf ? "application/pdf" : "image/jpeg";
+      const ruta = `${id}/${tipo}_${Date.now()}.${ext}`;
+
       const { error: eUp } = await supabase.storage
         .from("evidencias")
-        .upload(ruta, blob, { contentType: "image/jpeg" });
+        .upload(ruta, cuerpo, { contentType });
       if (eUp) throw eUp;
 
       const { lat, lng } = await obtenerUbicacion();
@@ -133,8 +150,9 @@ export default function PedidoDetalle() {
 
       if (tipo === "foto_entrega") setFotoSubida(true);
       if (tipo === "escaneo_documento") setDocSubido(true);
+      if (tipo === "factura") setFacturas((n) => n + 1);
     } catch (err) {
-      setErrorMsg("No se pudo subir la evidencia. " + (err.message || ""));
+      setErrorMsg("No se pudo subir el archivo. " + (err.message || ""));
     } finally {
       setAccionEnCurso(null);
     }
@@ -253,6 +271,11 @@ export default function PedidoDetalle() {
               <b>Cobrar al cliente: {peso(pedido.monto_a_cobrar)}</b>
             </Row>
           )}
+          {pedido.pago_fletero != null && (
+            <Row icon="none">
+              Tu pago por esta entrega: <b>{peso(pedido.pago_fletero)}</b>
+            </Row>
+          )}
           {pedido.notas && <div className="nota"><b>Nota:</b> {pedido.notas}</div>}
         </div>
 
@@ -275,11 +298,40 @@ export default function PedidoDetalle() {
 
         {errorMsg && <div className="error-box" style={{ marginBottom: 14 }}>{errorMsg}</div>}
 
-        {finalizado && (
+        {finalizado && pedido.estado_actual === "fallido" && (
           <div className="empty">
-            <h3>Pedido {pedido.estado_actual}</h3>
+            <h3>Pedido fallido</h3>
             <p>Este pedido ya está cerrado.</p>
           </div>
+        )}
+
+        {finalizado && pedido.estado_actual === "entregado" && (
+          <>
+            <div className="empty" style={{ padding: "20px" }}>
+              <h3>Pedido entregado</h3>
+              <p>Podés adjuntar la factura de esta entrega.</p>
+            </div>
+            <p className="section-label">Factura</p>
+            <div className={"evid" + (facturas > 0 ? " done" : "")}>
+              {facturas > 0
+                ? `✓ ${facturas} factura${facturas > 1 ? "s" : ""} cargada${facturas > 1 ? "s" : ""}`
+                : "Adjuntá la factura (foto o PDF)"}
+            </div>
+            <input
+              ref={inputFactura}
+              type="file"
+              accept="image/*,application/pdf"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) subirEvidencia(f, "factura");
+                e.target.value = "";
+              }}
+            />
+            <button className="btn btn-ghost" disabled={ocupado} onClick={() => inputFactura.current?.click()}>
+              {ocupado ? accionEnCurso : facturas > 0 ? "Adjuntar otra factura" : "Cargar factura"}
+            </button>
+          </>
         )}
 
         {/* Paso 1 */}
