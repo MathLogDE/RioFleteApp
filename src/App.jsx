@@ -8,6 +8,8 @@ import PedidoDetalle from "./pages/PedidoDetalle";
 import SucursalPanel from "./pages/SucursalPanel";
 import NuevoPedido from "./pages/NuevoPedido";
 import OperadorPanel from "./pages/OperadorPanel";
+import GerenciaPanel from "./pages/GerenciaPanel";
+import DashboardGerencia from "./pages/DashboardGerencia";
 
 // Decide a dónde mandar al usuario según su rol al entrar a "/".
 function Inicio() {
@@ -29,16 +31,8 @@ function Inicio() {
       return <Navigate to="/sucursal" replace />;
     case "operador":
       return <Navigate to="/operador" replace />;
-    // El panel de gerencia (reportes) se construye más adelante.
     case "gerencia":
-      return (
-        <div className="center-screen">
-          <div className="empty">
-            <h3>Panel en construcción</h3>
-            <p>El panel para el rol "{rol}" todavía no está disponible.</p>
-          </div>
-        </div>
-      );
+      return <Navigate to="/gerencia" replace />;
     default:
       return (
         <div className="center-screen">
@@ -121,6 +115,22 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["operador", "admin"]}>
                   <OperadorPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gerencia"
+              element={
+                <ProtectedRoute roles={["gerencia", "admin"]}>
+                  <DashboardGerencia />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gerencia/pagos"
+              element={
+                <ProtectedRoute roles={["gerencia", "admin"]}>
+                  <GerenciaPanel />
                 </ProtectedRoute>
               }
             />
