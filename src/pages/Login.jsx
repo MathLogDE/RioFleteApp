@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -33,28 +34,8 @@ export default function Login() {
   return (
     <div className="center-screen">
       <div style={{ width: "100%", maxWidth: 380 }}>
-        <div
-          className="wordmark"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 800,
-            fontSize: "1.75rem",
-            letterSpacing: "-0.03em",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 6
-          }}
-        >
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: 5,
-              background: "var(--amber)"
-            }}
-          />
-          Entregas
+        <div style={{ marginBottom: 18 }}>
+          <Logo height={52} />
         </div>
         <p style={{ color: "var(--muted)", marginTop: 0, marginBottom: 28 }}>
           Ingresá para ver tus entregas del día.

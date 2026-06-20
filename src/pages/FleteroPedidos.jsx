@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import StatusBadge from "../components/StatusBadge";
+import Topbar from "../components/Topbar";
 
 // Estados en los que el pedido ya está en manos del fletero y todavía no se
 // finalizó. (pendiente = aún sin asignar; entregado/fallido/devolucion/cambiado
@@ -49,11 +50,7 @@ export default function FleteroPedidos() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <span className="wordmark">
-          <span className="dot" />
-          Entregas
-        </span>
+      <Topbar>
         <span className="who">
           {nombre}
           <br />
@@ -61,7 +58,7 @@ export default function FleteroPedidos() {
             Salir
           </button>
         </span>
-      </header>
+      </Topbar>
 
       <main className="content">
         <div

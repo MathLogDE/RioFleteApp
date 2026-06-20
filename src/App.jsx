@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import FleteroPedidos from "./pages/FleteroPedidos";
@@ -65,36 +66,38 @@ function LoginRoute() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginRoute />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Inicio />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pedidos"
-            element={
-              <ProtectedRoute roles={["fletero"]}>
-                <FleteroPedidos />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pedidos/:id"
-            element={
-              <ProtectedRoute roles={["fletero"]}>
-                <PedidoDetalle />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginRoute />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Inicio />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedidos"
+              element={
+                <ProtectedRoute roles={["fletero"]}>
+                  <FleteroPedidos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedidos/:id"
+              element={
+                <ProtectedRoute roles={["fletero"]}>
+                  <PedidoDetalle />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

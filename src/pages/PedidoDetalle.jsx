@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { comprimirImagen } from "../lib/imagen";
 import { obtenerUbicacion } from "../lib/geo";
 import StatusBadge from "../components/StatusBadge";
+import Topbar from "../components/Topbar";
 
 const peso = (n) => (n == null ? "" : "$" + Number(n).toLocaleString("es-AR"));
 
@@ -193,7 +194,9 @@ export default function PedidoDetalle() {
   if (estado === "error") {
     return (
       <div className="app-shell">
-        <Topbar onBack={() => navigate(-1)} />
+        <Topbar>
+          <button className="linklike" onClick={() => navigate(-1)}>Volver</button>
+        </Topbar>
         <main className="content">
           <div className="error-box">No se pudo cargar el pedido. {errorMsg}</div>
         </main>
@@ -219,7 +222,9 @@ export default function PedidoDetalle() {
 
   return (
     <div className="app-shell">
-      <Topbar onBack={() => navigate("/pedidos")} />
+      <Topbar>
+        <button className="linklike" onClick={() => navigate("/pedidos")}>Volver</button>
+      </Topbar>
       <main className="content">
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <h2 style={{ margin: 0, fontSize: "1.3rem" }}>{pedido.cliente_nombre}</h2>
@@ -424,15 +429,6 @@ export default function PedidoDetalle() {
         )}
       </main>
     </div>
-  );
-}
-
-function Topbar({ onBack }) {
-  return (
-    <header className="topbar">
-      <span className="wordmark"><span className="dot" />Entregas</span>
-      <button className="linklike" onClick={onBack}>Volver</button>
-    </header>
   );
 }
 
