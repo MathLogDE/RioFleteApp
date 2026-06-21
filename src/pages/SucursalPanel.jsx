@@ -21,6 +21,9 @@ export default function SucursalPanel() {
   const [pedidos, setPedidos] = useState([]);
   const [estado, setEstado] = useState("cargando");
   const [errorMsg, setErrorMsg] = useState("");
+  const [reversaFor, setReversaFor] = useState(null); // id del pedido origen
+  const [reversaNota, setReversaNota] = useState("");
+  const [creando, setCreando] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -41,7 +44,7 @@ export default function SucursalPanel() {
     setEstado("cargando");
     const { data, error } = await supabase
       .from("pedidos")
-      .select("id, numero_pedido, cliente_nombre, direccion_entrega, estado_actual, metodo_entrega, fletero_id")
+      .select("id, numero_pedido, cliente_nombre, cliente_documento, cliente_telefono, direccion_entrega, estado_actual, metodo_entrega, metodo_pago, zona_id, fletero_id, tipo, pedido_origen_id")
       .eq("sucursal_id", sucursalSel)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -58,15 +61,78 @@ export default function SucursalPanel() {
     cargarPedidos();
   }, [cargarPedidos]);
 
-  async function asignarFletero(pedidoId, fleteroId) {
+  async function asignarFletero(pedido, fleteroId) {
+    const esReversa = pedido.tipo === "devolucion" || pedido.tipo === "cambio";
+    // En reversa el estado se queda en 'devolucion_pendiente' (no pasa a 'asignado').
+    const nuevoEstado = esReversa
+      ? "devolucion_pendiente"
+      : fleteroId
+      ? "asignado"
+      : "recibido";
     const { error } = await supabase
       .from("pedidos")
-      .update({ fletero_id: fleteroId || null, estado_actual: fleteroId ? "asignado" : "recibido" })
-      .eq("id", pedidoId);
+      .update({ fletero_id: fleteroId || null, estado_actual: nuevoEstado })
+      .eq("id", pedido.id);
     if (error) {
       setErrorMsg("No se pudo asignar. " + error.message);
       return;
     }
+    cargarPedidos();
+  }
+
+  // Crea un pedido de logística inversa heredando los datos del original.
+  async function crearReversa(origen, tipo) {
+    setCreando(true);
+    setErrorMsg("");
+    const nuevo = {
+      sucursal_id: sucursalSel,
+      tipo,
+      pedido_origen_id: origen.id,
+      cliente_nombre: origen.cliente_nombre,
+      cliente_documento: origen.cliente_documento ?? null,
+      cliente_telefono: origen.cliente_telefono ?? null,
+      direccion_entrega: origen.direccion_entrega,
+      zona_id: origen.zona_id ?? null,
+      metodo_entrega: "flete",
+      metodo_pago: origen.metodo_pago ?? null,
+      validacion_lugar: "en_entrega",
+      monto: null,
+      cobra_fletero: false,
+      notas: reversaNota.trim() || null,
+      estado_actual: "devolucion_pendiente"
+    };
+    const { data: creado, error } = await supabase
+      .from("pedidos")
+      .insert(nuevo)
+      .select("id")
+      .single();
+    if (error) {
+      setCreando(false);
+      setReversaFor(null);
+      setReversaNota("");
+      setErrorMsg("No se pudo generar la devolución/cambio. " + error.message);
+      return;
+    }
+
+    // Copiamos los artículos del original, para que el fletero sepa qué retirar.
+    const { data: arts } = await supabase
+      .from("pedido_articulos")
+      .select("codigo, descripcion, cantidad")
+      .eq("pedido_id", origen.id);
+    if (arts && arts.length) {
+      await supabase.from("pedido_articulos").insert(
+        arts.map((a) => ({
+          pedido_id: creado.id,
+          codigo: a.codigo,
+          descripcion: a.descripcion,
+          cantidad: a.cantidad
+        }))
+      );
+    }
+
+    setCreando(false);
+    setReversaFor(null);
+    setReversaNota("");
     cargarPedidos();
   }
 
@@ -110,14 +176,27 @@ export default function SucursalPanel() {
         )}
 
         {estado === "ok" && pedidos.map((p) => {
-          const sinAsignar = !p.fletero_id;
           const esFlete = p.metodo_entrega === "flete";
+          const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
+          const puedeGenerarReversa =
+            p.estado_actual === "entregado" && (p.tipo == null || p.tipo === "venta");
           return (
             <div className="card" key={p.id} style={{ cursor: "default" }}>
               <div className="card-top">
                 <span className="cliente">{p.cliente_nombre}</span>
                 <StatusBadge estado={p.estado_actual} />
               </div>
+              {esReversa && (
+                <div style={{ margin: "2px 0" }}>
+                  <span style={{
+                    fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase",
+                    letterSpacing: "0.04em", color: "var(--acento)",
+                    border: "1px solid var(--acento)", borderRadius: 6, padding: "2px 7px"
+                  }}>
+                    {p.tipo === "cambio" ? "Cambio" : "Devolución"}
+                  </span>
+                </div>
+              )}
               <div className="dir">{p.direccion_entrega}</div>
               <div className="meta">
                 <span>#{p.numero_pedido || String(p.id).slice(0, 8)}</span>
@@ -130,7 +209,7 @@ export default function SucursalPanel() {
                   <select
                     style={{ ...selStyle, flex: 1 }}
                     value={p.fletero_id || ""}
-                    onChange={(e) => asignarFletero(p.id, e.target.value)}
+                    onChange={(e) => asignarFletero(p, e.target.value)}
                   >
                     <option value="">Sin asignar</option>
                     {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
@@ -140,6 +219,40 @@ export default function SucursalPanel() {
               {!esFlete && (
                 <div style={{ marginTop: 10, fontSize: "0.82rem", color: "var(--muted)" }}>
                   {p.metodo_entrega === "sucursal" ? "Retiro en sucursal" : "Courier"} — sin fletero
+                </div>
+              )}
+
+              {puedeGenerarReversa && reversaFor !== p.id && (
+                <button
+                  className="btn btn-ghost"
+                  style={{ marginTop: 12, minHeight: 0, padding: "10px 14px", fontSize: "0.9rem" }}
+                  onClick={() => { setReversaFor(p.id); setReversaNota(""); }}
+                >
+                  Generar devolución / cambio
+                </button>
+              )}
+              {puedeGenerarReversa && reversaFor === p.id && (
+                <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                  <input
+                    style={{ ...selStyle, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
+                    placeholder="Motivo (opcional)"
+                    value={reversaNota}
+                    onChange={(e) => setReversaNota(e.target.value)}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn btn-primary" style={{ flex: 1, minHeight: 0, padding: "10px 0", fontSize: "0.9rem" }}
+                      disabled={creando} onClick={() => crearReversa(p, "devolucion")}>
+                      {creando ? "…" : "Devolución"}
+                    </button>
+                    <button className="btn btn-primary" style={{ flex: 1, minHeight: 0, padding: "10px 0", fontSize: "0.9rem" }}
+                      disabled={creando} onClick={() => crearReversa(p, "cambio")}>
+                      {creando ? "…" : "Cambio"}
+                    </button>
+                    <button className="btn btn-ghost" style={{ flex: "0 0 auto", minHeight: 0, padding: "10px 14px", fontSize: "0.9rem" }}
+                      disabled={creando} onClick={() => setReversaFor(null)}>
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

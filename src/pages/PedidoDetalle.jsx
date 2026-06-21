@@ -24,7 +24,7 @@ const COLS =
   "id, numero_pedido, cliente_nombre, cliente_documento, cliente_telefono, " +
   "direccion_entrega, monto, notas, estado_actual, fletero_id, metodo_pago, " +
   "pago_validado, cobra_fletero, monto_a_cobrar, cobro_realizado, pago_fletero, " +
-  "validacion_lugar, metodo_entrega, zonas(nombre), " +
+  "validacion_lugar, metodo_entrega, tipo, pedido_origen_id, zonas(nombre), " +
   "pedido_articulos(codigo, descripcion, cantidad)";
 
 export default function PedidoDetalle() {
@@ -60,6 +60,7 @@ export default function PedidoDetalle() {
   const inputFoto = useRef(null);
   const inputDoc = useRef(null);
   const inputFactura = useRef(null);
+  const inputFacturaPdf = useRef(null);
 
   const cargar = useCallback(async () => {
     setEstado("cargando");
@@ -117,7 +118,7 @@ export default function PedidoDetalle() {
     if (e2) console.warn("No se pudo registrar el evento:", e2.message);
 
     setAccionEnCurso(null);
-    if (nuevo === "entregado" || nuevo === "fallido") navigate("/pedidos");
+    if (["entregado", "fallido", "devolucion_retirada", "cambiado"].includes(nuevo)) navigate("/pedidos");
     else setPedido((p) => ({ ...p, estado_actual: nuevo }));
   }
 
@@ -227,6 +228,14 @@ export default function PedidoDetalle() {
   const finalizado = ["entregado", "fallido"].includes(pedido.estado_actual);
   const ocupado = accionEnCurso != null;
 
+  // Logística inversa
+  const esDevolucion = pedido.tipo === "devolucion";
+  const esCambio = pedido.tipo === "cambio";
+  const reversaPendiente =
+    (esDevolucion || esCambio) && pedido.estado_actual === "devolucion_pendiente";
+  const reversaCerrada = ["devolucion_retirada", "cambiado"].includes(pedido.estado_actual);
+  const puedeCerrarReversa = fotoSubida;
+
   // Reglas de validación según el pedido
   const validacionEnSucursal = pedido.validacion_lugar === "en_sucursal";
   const requiereTarjeta = pedido.metodo_pago === "tarjeta" && !validacionEnSucursal;
@@ -282,7 +291,7 @@ export default function PedidoDetalle() {
         {pedido.pedido_articulos?.length > 0 && (
           <div className="detail-block">
             <p className="section-label" style={{ margin: "0 0 10px" }}>
-              Artículos a entregar
+              {esDevolucion ? "Artículos a retirar" : esCambio ? "Artículos del cambio" : "Artículos a entregar"}
             </p>
             {pedido.pedido_articulos.map((a, i) => (
               <div className="art-row" key={i}>
@@ -317,10 +326,12 @@ export default function PedidoDetalle() {
                 ? `✓ ${facturas} factura${facturas > 1 ? "s" : ""} cargada${facturas > 1 ? "s" : ""}`
                 : "Adjuntá la factura (foto o PDF)"}
             </div>
+
+            {/* Foto: input solo de imagen -> cámara/galería */}
             <input
               ref={inputFactura}
               type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
+              accept="image/*"
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -328,10 +339,80 @@ export default function PedidoDetalle() {
                 e.target.value = "";
               }}
             />
-            <button className="btn btn-ghost" disabled={ocupado} onClick={() => inputFactura.current?.click()}>
-              {ocupado ? accionEnCurso : facturas > 0 ? "Adjuntar otra factura" : "Cargar factura"}
+            {/* PDF: input solo de application/pdf -> explorador de archivos.
+                Separados a propósito: con un único tipo, Android no secuestra
+                la selección con el picker de fotos. */}
+            <input
+              ref={inputFacturaPdf}
+              type="file"
+              accept="application/pdf"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) subirEvidencia(f, "factura");
+                e.target.value = "";
+              }}
+            />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} disabled={ocupado} onClick={() => inputFactura.current?.click()}>
+                {ocupado ? accionEnCurso : "Factura (foto)"}
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} disabled={ocupado} onClick={() => inputFacturaPdf.current?.click()}>
+                {ocupado ? accionEnCurso : "Factura (PDF)"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Logística inversa: retiro (devolución) o cambio */}
+        {reversaPendiente && !modoFallo && (
+          <>
+            <div className="detail-block" style={{ borderLeft: "3px solid var(--acento)" }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>{esCambio ? "Cambio" : "Devolución"}</p>
+              <p style={{ margin: "4px 0 0", fontSize: "0.9rem", color: "var(--ink-soft)" }}>
+                {esCambio
+                  ? "Entregá el reemplazo al cliente y retirá el producto original."
+                  : "Retirá el producto del cliente y traelo a la sucursal."}
+              </p>
+            </div>
+
+            <p className="section-label" style={{ marginTop: 8 }}>Evidencia</p>
+            <div className={"evid" + (fotoSubida ? " done" : "")}>
+              {fotoSubida
+                ? "✓ Foto registrada"
+                : esCambio
+                ? "Foto del producto retirado"
+                : "Foto del producto retirado"}
+            </div>
+            <input ref={inputFoto} type="file" accept="image/*" capture="environment" hidden
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) subirEvidencia(f, "foto_entrega"); e.target.value = ""; }} />
+            {!fotoSubida && (
+              <button className="btn btn-ghost" style={{ marginBottom: 16 }} disabled={ocupado} onClick={() => inputFoto.current?.click()}>
+                {ocupado ? accionEnCurso : "Tomar foto"}
+              </button>
+            )}
+
+            <button
+              className="btn btn-primary"
+              disabled={!puedeCerrarReversa || ocupado}
+              onClick={() => cambiarEstado(esCambio ? "cambiado" : "devolucion_retirada")}
+              style={{ background: puedeCerrarReversa ? "var(--st-entregado)" : undefined }}
+            >
+              {puedeCerrarReversa
+                ? esCambio ? "Confirmar cambio" : "Confirmar retiro"
+                : "Sacá la foto para confirmar"}
+            </button>
+            <button className="btn btn-danger" style={{ marginTop: 10 }} disabled={ocupado} onClick={() => setModoFallo(true)}>
+              No se pudo concretar
             </button>
           </>
+        )}
+
+        {reversaCerrada && (
+          <div className="empty">
+            <h3>{esCambio ? "Cambio realizado" : "Devolución retirada"}</h3>
+            <p>Este movimiento ya está cerrado.</p>
+          </div>
         )}
 
         {/* Paso 1 */}

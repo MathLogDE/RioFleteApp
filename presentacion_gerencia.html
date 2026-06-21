@@ -1,0 +1,259 @@
+<meta charset="utf-8">
+<title>Río Shop Deco · Sistema de Gestión de Entregas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16110F;
+    --paper:#FBFAF7;
+    --band:#F3EEE6;
+    --red:#C41E2A;
+    --red-deep:#8E141D;
+    --soft:#5B5249;
+    --faint:#8A8077;
+    --line:#E7E1D7;
+    --line-strong:#D8D0C4;
+    --green:#1E7A5E;
+    --serif:"Fraunces",Georgia,serif;
+    --sans:"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#cfcabf}
+  body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;
+    display:flex;justify-content:center;padding:18px}
+
+  /* Hoja A4 */
+  .sheet{
+    width:210mm;min-height:297mm;background:var(--paper);position:relative;
+    box-shadow:0 8px 40px rgba(0,0,0,.22);overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+
+  /* ---------- Encabezado de marca ---------- */
+  .head{background:var(--ink);color:#fff;padding:13mm 14mm 11mm;position:relative}
+  .wordmark{display:flex;align-items:baseline;gap:.18em;line-height:.9}
+  .wordmark .rio{font-family:var(--serif);font-weight:500;font-size:30px;letter-spacing:.01em}
+  .wordmark .deco{font-family:var(--serif);font-weight:600;font-size:20px;color:var(--red);
+    font-style:italic;transform:translateY(-1px)}
+  .wave{margin-top:5px;width:128px;height:9px;opacity:.92}
+  .head h1{font-family:var(--serif);font-weight:600;font-size:26px;letter-spacing:.005em;
+    margin-top:13px;line-height:1.08}
+  .head .thesis{font-size:11.5px;color:#D7CFC6;margin-top:7px;max-width:135mm;line-height:1.45}
+  .head .tag{position:absolute;top:13mm;right:14mm;font-size:8.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:#9A9088;border:1px solid #3A322C;border-radius:999px;
+    padding:5px 11px}
+
+  /* ---------- Flujo (secuencia real, por eso va numerado) ---------- */
+  .flow{padding:9mm 14mm 7mm}
+  .eyebrow{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--red-deep);
+    font-weight:700;margin-bottom:10px}
+  .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative}
+  .steps::before{content:"";position:absolute;top:13px;left:9%;right:9%;height:2px;
+    background:repeating-linear-gradient(90deg,var(--line-strong) 0 7px,transparent 7px 12px)}
+  .step{text-align:center;padding:0 5px;position:relative}
+  .step .num{width:27px;height:27px;border-radius:50%;background:var(--ink);color:#fff;
+    font-family:var(--serif);font-weight:600;font-size:13px;display:flex;align-items:center;
+    justify-content:center;margin:0 auto 9px;position:relative;z-index:1}
+  .step.gz .num{background:var(--red)}
+  .step .role{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+    font-weight:700;margin-bottom:3px}
+  .step .ttl{font-weight:600;font-size:11.5px;line-height:1.2;margin-bottom:4px}
+  .step .desc{font-size:9.5px;color:var(--soft);line-height:1.4}
+
+  /* ---------- Cuerpo en dos columnas ---------- */
+  .body{display:grid;grid-template-columns:1.18fr 1fr;gap:0;border-top:1px solid var(--line);
+    flex:1}
+  .col{padding:8mm 14mm}
+  .col.left{border-right:1px solid var(--line)}
+  .col.left{padding-right:9mm}
+  .col.right{padding-left:9mm;background:var(--band)}
+  .col h2{font-family:var(--serif);font-weight:600;font-size:16.5px;margin-bottom:3px}
+  .col .sub{font-size:9.5px;color:var(--soft);margin-bottom:13px;line-height:1.4}
+
+  .risk{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .risk:last-child{border-bottom:0}
+  .risk .x{flex:0 0 auto;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--red);
+    color:var(--red);font-size:10px;font-weight:700;display:flex;align-items:center;
+    justify-content:center;margin-top:1px}
+  .risk .k{font-weight:600;font-size:11px;display:block;margin-bottom:1px}
+  .risk .v{font-size:9.5px;color:var(--soft);line-height:1.45}
+  .risk .v b{color:var(--ink);font-weight:600}
+
+  .ctrl{display:flex;gap:9px;padding:6.5px 0}
+  .ctrl .d{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--green);
+    margin-top:6px}
+  .ctrl span{font-size:10px;line-height:1.4}
+  .ctrl span b{font-weight:600}
+
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+  .chip{font-size:8.5px;font-weight:600;background:#fff;border:1px solid var(--line-strong);
+    border-radius:6px;padding:4px 8px;color:var(--soft)}
+
+  /* ---------- Banda de ciclo de pago ---------- */
+  .pay{background:var(--ink);color:#fff;padding:6.5mm 14mm;display:flex;align-items:center;
+    justify-content:space-between;gap:18px}
+  .pay .lab{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#9A9088;
+    font-weight:700}
+  .pay .chain{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .pay .node{font-size:10px;font-weight:600;background:#241D19;border:1px solid #3A322C;
+    border-radius:6px;padding:5px 11px}
+  .pay .node.on{background:var(--red);border-color:var(--red)}
+  .pay .arr{color:#6E635A;font-size:11px}
+  .pay .note{font-size:9px;color:#C9C0B7;max-width:62mm;line-height:1.4;text-align:right}
+
+  /* ---------- Pie ---------- */
+  .foot{padding:5mm 14mm;display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid var(--line);font-size:8.5px;color:var(--faint)}
+  .foot b{color:var(--soft);font-weight:600}
+
+  @media print{
+    @page{size:A4;margin:0}
+    html,body{background:#fff;padding:0}
+    .sheet{box-shadow:none;width:210mm;min-height:297mm}
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="head">
+    <span class="tag">Resumen ejecutivo</span>
+    <div class="wordmark">
+      <span class="rio">Río Shop</span><span class="deco">Deco</span>
+    </div>
+    <svg class="wave" viewBox="0 0 128 9" fill="none">
+      <path d="M0 6 C24 1, 40 1, 64 5 S104 9, 128 3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <h1>Sistema de gestión de entregas y antifraude</h1>
+    <p class="thesis">Una sola app, instalable en el celular, que acompaña el pedido desde el
+      mostrador hasta el pago del fletero. Cada entrega queda probada, cada cobro validado y
+      cada acción registrada con autor y hora.</p>
+  </header>
+
+  <!-- FLUJO -->
+  <section class="flow">
+    <div class="eyebrow">El recorrido de un pedido</div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="role">Encargado</div>
+        <div class="ttl">Carga del pedido</div>
+        <div class="desc">Cliente, artículos, método de pago y de entrega. Asigna el fletero.</div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="role">Operador</div>
+        <div class="ttl">Mostrador</div>
+        <div class="desc">Recibe la mercadería en sucursal y entrega los retiros en el local.</div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="role">Fletero</div>
+        <div class="ttl">Entrega</div>
+        <div class="desc">Valida la tarjeta, saca foto y documento, marca entregado o fallido.</div>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
+        <div class="role">Fletero</div>
+        <div class="ttl">Comprobante</div>
+        <div class="desc">Sube la factura y el pedido queda listo para pagarse.</div>
+      </div>
+      <div class="step gz">
+        <div class="num">5</div>
+        <div class="role">Gerencia</div>
+        <div class="ttl">Control y pago</div>
+        <div class="desc">Tablero en vivo y conciliación del pago al fletero.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CUERPO -->
+  <div class="body">
+
+    <div class="col left">
+      <h2>Peligros que eliminamos</h2>
+      <p class="sub">Los puntos donde antes se filtraba dinero o se perdía el rastro, ahora cerrados.</p>
+
+      <div class="risk">
+        <div class="x">✕</div>
+        <div>
+          <span class="k">Entrega fantasma</span>
+          <span class="v">Nadie puede marcar “entregado” sin <b>foto, documento y registro de quién y cuándo</b>. La app toma además la ubicación al cerrar.</span>
+        </div>
+      </div>
+
+      <div class="risk">
+        <div class="x">✕</div>
+        <div>
+          <span class="k">Fraude con la tarjeta</span>
+          <span class="v">Los <b>últimos 4 dígitos</b> se guardan en un campo que la app no puede leer: solo el servidor los compara. Nunca se almacena el número completo, vencimiento ni CVV.</span>
+        </div>
+      </div>
+
+      <div class="risk">
+        <div class="x">✕</div>
+        <div>
+          <span class="k">Manipulación del fletero</span>
+          <span class="v">El chofer solo puede cambiar el <b>estado de la entrega</b>. No toca montos, datos del cliente ni del pago — bloqueado en la propia base de datos, no solo en pantalla.</span>
+        </div>
+      </div>
+
+      <div class="risk">
+        <div class="x">✕</div>
+        <div>
+          <span class="k">Pago indebido al fletero</span>
+          <span class="v">Solo se paga lo que tiene <b>factura cargada</b>. Cada pago queda con método, fecha y responsable.</span>
+        </div>
+      </div>
+
+      <div class="risk">
+        <div class="x">✕</div>
+        <div>
+          <span class="k">Acceso a datos que no corresponden</span>
+          <span class="v">Cada rol ve únicamente lo de <b>su sucursal</b>. Las facturas se abren con enlaces que expiran a los segundos.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col right">
+      <h2>Lo que ve la gerencia</h2>
+      <p class="sub">Un tablero en vivo, filtrable por período y por sucursal.</p>
+
+      <div class="metrics">
+        <span class="chip">Hoy</span><span class="chip">7 días</span>
+        <span class="chip">Este mes</span><span class="chip">Por sucursal</span>
+      </div>
+
+      <div class="ctrl"><span class="d"></span><span><b>Ventas y gasto en fletes</b> del período.</span></div>
+      <div class="ctrl"><span class="d"></span><span><b>Tasa de entrega</b>: entregados, en proceso y no entregados.</span></div>
+      <div class="ctrl"><span class="d"></span><span>Ranking <b>por sucursal</b> y <b>por fletero</b>.</span></div>
+      <div class="ctrl"><span class="d"></span><span><b>Devoluciones y cambios</b> a la vista.</span></div>
+      <div class="ctrl"><span class="d"></span><span>Total <b>por pagar a fleteros</b> y conciliación en lote.</span></div>
+      <div class="ctrl"><span class="d"></span><span><b>Historial auditable</b>: cada validación y entrega con usuario y hora.</span></div>
+      <div class="ctrl"><span class="d"></span><span>Descarga de <b>facturas</b> y evidencias de cada pedido.</span></div>
+    </div>
+
+  </div>
+
+  <!-- CICLO DE PAGO -->
+  <section class="pay">
+    <div>
+      <div class="lab">Ciclo de pago al fletero</div>
+      <div class="chain" style="margin-top:8px">
+        <span class="node">Entregado</span>
+        <span class="arr">→</span>
+        <span class="node">Facturado</span>
+        <span class="arr">→</span>
+        <span class="node on">Pagado</span>
+      </div>
+    </div>
+    <p class="note">El estado avanza solo, paso a paso. La gerencia paga únicamente lo que ya
+      llegó a “facturado”, en un lote por fletero.</p>
+  </section>
+
+  <footer class="foot">
+    <span>Río Shop Deco · App de fletes y entregas</span>
+    <span><b>Roles:</b> encargado · operador · fletero · gerencia · admin</span>
+  </footer>
+
+</div>

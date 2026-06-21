@@ -8,7 +8,7 @@ import Topbar from "../components/Topbar";
 // Estados en los que el pedido ya está en manos del fletero y todavía no se
 // finalizó. (pendiente = aún sin asignar; entregado/fallido/devolucion/cambiado
 // = cerrados, no van en la lista de trabajo del día.)
-const ESTADOS_ACTIVOS = ["asignado", "enviado", "en_camino"];
+const ESTADOS_ACTIVOS = ["asignado", "enviado", "en_camino", "devolucion_pendiente"];
 
 export default function FleteroPedidos() {
   const { user, perfil } = useAuth();
@@ -28,7 +28,7 @@ export default function FleteroPedidos() {
     const { data, error } = await supabase
       .from("pedidos")
       .select(
-        "id, numero_pedido, cliente_nombre, direccion_entrega, estado_actual, created_at"
+        "id, numero_pedido, cliente_nombre, direccion_entrega, estado_actual, tipo, created_at"
       )
       .eq("fletero_id", user.id)
       .in("estado_actual", ESTADOS_ACTIVOS)
@@ -115,6 +115,17 @@ export default function FleteroPedidos() {
                 <span className="cliente">{p.cliente_nombre}</span>
                 <StatusBadge estado={p.estado_actual} />
               </div>
+              {(p.tipo === "devolucion" || p.tipo === "cambio") && (
+                <div style={{ margin: "2px 0" }}>
+                  <span style={{
+                    fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase",
+                    letterSpacing: "0.04em", color: "var(--acento)",
+                    border: "1px solid var(--acento)", borderRadius: 6, padding: "2px 7px"
+                  }}>
+                    {p.tipo === "cambio" ? "Cambio — retirar/entregar" : "Devolución — retirar"}
+                  </span>
+                </div>
+              )}
               <div className="dir">{p.direccion_entrega}</div>
               <div className="meta">
                 <span>
