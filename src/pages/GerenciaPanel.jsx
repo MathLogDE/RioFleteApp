@@ -71,9 +71,10 @@ export default function GerenciaPanel() {
     if (ids.length) {
       const { data: ev } = await supabase
         .from("evidencias")
-        .select("pedido_id, archivo_url")
+        .select("pedido_id, archivo_url, created_at")
         .eq("tipo", "factura")
-        .in("pedido_id", ids);
+        .in("pedido_id", ids)
+        .order("created_at", { ascending: false });
       const fmap = {};
       (ev ?? []).forEach((e) => {
         (fmap[e.pedido_id] = fmap[e.pedido_id] || []).push(e.archivo_url);

@@ -320,7 +320,7 @@ export default function PedidoDetalle() {
             <input
               ref={inputFactura}
               type="file"
-              accept="image/*,application/pdf"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
