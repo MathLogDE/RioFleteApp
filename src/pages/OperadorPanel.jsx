@@ -1,6 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { comprimirImagen } from "../lib/imagen";
+import { obtenerUbicacion } from "../lib/geo";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
 
@@ -79,6 +81,75 @@ function ValidarTarjeta({ pedidoId, onValidado }) {
           {estado === "validando" ? "Validando…" : "Validar"}
         </button>
       </div>
+      {estado === "error" && (
+        <div style={{ color: "var(--st-fallido)", fontSize: "0.85rem", marginTop: 6 }}>{msg}</div>
+      )}
+    </div>
+  );
+}
+
+// Captura/sube la foto del DNI del cliente (evidencia escaneo_documento).
+// Sube el archivo al bucket y registra la fila en evidencias.
+function SubirDni({ pedidoId }) {
+  const inputRef = useRef(null);
+  const [coincide, setCoincide] = useState(true);
+  const [estado, setEstado] = useState("idle"); // idle | subiendo | ok | error
+  const [msg, setMsg] = useState("");
+
+  async function subir(file) {
+    setEstado("subiendo");
+    setMsg("");
+    try {
+      const cuerpo = await comprimirImagen(file);
+      const ruta = `${pedidoId}/escaneo_documento_${Date.now()}.jpg`;
+      const { error: eUp } = await supabase.storage
+        .from("evidencias")
+        .upload(ruta, cuerpo, { contentType: "image/jpeg" });
+      if (eUp) throw eUp;
+
+      const { lat, lng } = await obtenerUbicacion();
+      const { error: eIns } = await supabase.from("evidencias").insert({
+        pedido_id: pedidoId,
+        tipo: "escaneo_documento",
+        archivo_url: ruta,
+        documento_coincide: coincide,
+        lat,
+        lng
+      });
+      if (eIns) throw eIns;
+      setEstado("ok");
+    } catch (err) {
+      setEstado("error");
+      setMsg(err.message || "No se pudo subir el documento.");
+    }
+  }
+
+  if (estado === "ok") {
+    return <div className="evid done" style={{ marginTop: 10 }}>✓ Documento registrado</div>;
+  }
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "var(--ink-soft)", marginBottom: 8 }}>
+        <input type="checkbox" checked={coincide} onChange={(e) => setCoincide(e.target.checked)} />
+        El documento coincide con el titular
+      </label>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) subir(f); e.target.value = ""; }}
+      />
+      <button
+        className="btn btn-ghost"
+        style={{ minHeight: 0, padding: "10px 16px" }}
+        disabled={estado === "subiendo"}
+        onClick={() => inputRef.current?.click()}
+      >
+        {estado === "subiendo" ? "Subiendo…" : "Foto del documento (DNI)"}
+      </button>
       {estado === "error" && (
         <div style={{ color: "var(--st-fallido)", fontSize: "0.85rem", marginTop: 6 }}>{msg}</div>
       )}
@@ -236,6 +307,7 @@ export default function OperadorPanel() {
                 </div>
                 <div className="dir">{p.direccion_entrega}</div>
                 <div className="meta"><span>#{p.numero_pedido || String(p.id).slice(0, 8)}</span><span>{peso(p.monto)}</span></div>
+                <SubirDni pedidoId={p.id} />
                 <ValidarTarjeta pedidoId={p.id} onValidado={cargar} />
               </div>
             ))}
@@ -255,6 +327,7 @@ export default function OperadorPanel() {
                     <span>{peso(p.monto)}</span>
                     {p.cliente_documento && <span>Doc. {p.cliente_documento}</span>}
                   </div>
+                  <SubirDni pedidoId={p.id} />
                   {requiereValidar ? (
                     <ValidarTarjeta pedidoId={p.id} onValidado={cargar} />
                   ) : (

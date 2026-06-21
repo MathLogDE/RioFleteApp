@@ -34,6 +34,7 @@ export default function NuevoPedido() {
     tarjeta_ultimos4: "",
     validacion_lugar: "en_entrega",
     monto: "",
+    pago_fletero: "",
     cobra_fletero: false,
     monto_a_cobrar: "",
     notas: "",
@@ -76,6 +77,7 @@ export default function NuevoPedido() {
 
   const esTarjeta = form.metodo_pago === "tarjeta";
   const esFlete = form.metodo_entrega === "flete";
+  const esRetiro = form.metodo_entrega === "sucursal";
   const esContraEntrega = form.metodo_pago === "contra_entrega";
 
   const puedeGuardar =
@@ -102,6 +104,8 @@ export default function NuevoPedido() {
       tarjeta_ultimos4: esTarjeta ? form.tarjeta_ultimos4 : null,
       validacion_lugar: esFlete ? form.validacion_lugar : "en_entrega",
       monto: form.monto ? Number(form.monto) : null,
+      pago_fletero:
+        !esRetiro && form.pago_fletero ? Number(form.pago_fletero) : null,
       cobra_fletero: esContraEntrega ? true : !!form.cobra_fletero,
       monto_a_cobrar:
         (esContraEntrega || form.cobra_fletero) && form.monto_a_cobrar
@@ -233,6 +237,12 @@ export default function NuevoPedido() {
           <label>Total de la venta</label>
           <input style={inputStyle} inputMode="numeric" value={form.monto} onChange={(e) => set("monto", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
         </div>
+        {!esRetiro && (
+          <div className="field">
+            <label>Precio del flete (pago al fletero)</label>
+            <input style={inputStyle} inputMode="numeric" value={form.pago_fletero} onChange={(e) => set("pago_fletero", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$ — lo que cobra el fletero por la entrega" />
+          </div>
+        )}
         {esContraEntrega && (
           <div className="field">
             <label>Monto a cobrar al cliente</label>

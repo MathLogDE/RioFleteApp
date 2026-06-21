@@ -1,10 +1,13 @@
 import Logo from "./Logo";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 // Barra superior compartida. Siempre fondo oscuro (marca), logo blanco,
-// botón para alternar tema, y un slot a la derecha para acciones de cada pantalla.
+// botón para alternar tema, slot para acciones de cada pantalla, y el
+// botón de cerrar sesión (común a todos los roles).
 export default function Topbar({ children }) {
   const { tema, toggle } = useTheme();
+  const { signOut } = useAuth();
   return (
     <header className="topbar">
       <Logo variant="blanco" height={26} />
@@ -27,6 +30,17 @@ export default function Topbar({ children }) {
           )}
         </button>
         {children}
+        <button
+          className="theme-toggle"
+          onClick={signOut}
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <path d="M16 17l5-5-5-5M21 12H9" />
+          </svg>
+        </button>
       </div>
     </header>
   );

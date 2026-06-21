@@ -11,7 +11,7 @@ import Topbar from "../components/Topbar";
 const ESTADOS_ACTIVOS = ["asignado", "enviado", "en_camino"];
 
 export default function FleteroPedidos() {
-  const { user, perfil, signOut } = useAuth();
+  const { user, perfil } = useAuth();
   const navigate = useNavigate();
   const [pedidos, setPedidos] = useState([]);
   const [entregados, setEntregados] = useState([]);
@@ -63,13 +63,7 @@ export default function FleteroPedidos() {
   return (
     <div className="app-shell">
       <Topbar>
-        <span className="who">
-          {nombre}
-          <br />
-          <button className="linklike" onClick={signOut}>
-            Salir
-          </button>
-        </span>
+        <span className="who">{nombre}</span>
       </Topbar>
 
       <main className="content">
