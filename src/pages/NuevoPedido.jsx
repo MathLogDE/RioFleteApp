@@ -65,7 +65,6 @@ export default function NuevoPedido() {
 
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
-  const [waResult, setWaResult] = useState(null); // diagnóstico del aviso WhatsApp
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
@@ -188,24 +187,20 @@ export default function NuevoPedido() {
     setGuardando(false);
 
     // --- Aviso al mostrador por WhatsApp -------------------------------
-    // El pedido ya quedó grabado. Resolvemos el número de la sucursal y
-    // dejamos el resultado a la vista (diagnóstico). Si hay número, intentamos
-    // abrir WhatsApp automáticamente con location.href; si el navegador lo
-    // bloquea (gesto perdido tras el await, típico en PWA/iOS), el panel
-    // muestra un botón tocable que SÍ funciona por ser un gesto del usuario.
+    // El pedido ya quedó grabado. Dejamos la app en la lista de pedidos ANTES
+    // de salir a WhatsApp: en el celular el SO abre la app de WhatsApp sin
+    // navegar el documento, así que la página no cambia sola. Si primero
+    // mandamos la ruta a /sucursal, al volver del chat el usuario encuentra
+    // la lista y no este formulario.
     const suc = sucursales.find((s) => s.id === form.sucursal_id);
-    const raw = (suc?.whatsapp || "").trim();
-    const numeroWa = waNumero(raw);
-    const url = numeroWa
-      ? `https://wa.me/${numeroWa}?text=${encodeURIComponent(construirMensajeWa())}`
-      : "";
+    const numeroWa = waNumero(suc?.whatsapp);
 
-    setWaResult({ raw, numeroWa, url });
+    navigate("/sucursal");
 
-    if (url) {
-      window.location.href = url; // intento automático
+    if (numeroWa) {
+      const url = `https://wa.me/${numeroWa}?text=${encodeURIComponent(construirMensajeWa())}`;
+      window.location.href = url; // abre WhatsApp (la app ya quedó en la lista)
     }
-    // Si no hay número, no redirige: el panel lo avisa.
   }
 
   return (
@@ -218,42 +213,6 @@ export default function NuevoPedido() {
         <h2 style={{ margin: "0 0 16px", fontSize: "1.3rem" }}>Nuevo pedido</h2>
 
         {error && <div className="error-box" style={{ marginBottom: 14 }}>{error}</div>}
-
-        {waResult && (
-          <div style={{
-            marginBottom: 16, padding: 14, borderRadius: 12,
-            border: "1px solid var(--line-strong)", background: "var(--surface)"
-          }}>
-            <p style={{ margin: "0 0 8px", fontWeight: 600 }}>✓ Pedido creado</p>
-
-            <p style={{ margin: "0 0 4px", fontSize: "0.9rem", opacity: 0.8 }}>
-              WhatsApp en la sucursal: <b>{waResult.raw || "(vacío)"}</b>
-            </p>
-            <p style={{ margin: "0 0 12px", fontSize: "0.9rem", opacity: 0.8 }}>
-              Número normalizado: <b>{waResult.numeroWa || "(no se pudo armar)"}</b>
-            </p>
-
-            {waResult.url ? (
-              <>
-                <p style={{ margin: "0 0 10px", fontSize: "0.9rem" }}>
-                  Si WhatsApp no se abrió solo, tocá acá:
-                </p>
-                <a className="btn btn-primary" href={waResult.url}
-                   style={{ display: "inline-block", textDecoration: "none", marginRight: 8 }}>
-                  Abrir WhatsApp
-                </a>
-              </>
-            ) : (
-              <p style={{ margin: "0 0 10px", fontSize: "0.9rem", color: "var(--st-fallido)" }}>
-                ⚠ Esta sucursal no tiene WhatsApp configurado (campo <code>whatsapp</code> vacío).
-              </p>
-            )}
-
-            <button className="btn btn-ghost" onClick={() => navigate("/sucursal")}>
-              Volver a pedidos
-            </button>
-          </div>
-        )}
 
         <div className="field">
           <label>Sucursal</label>
