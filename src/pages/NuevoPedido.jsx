@@ -14,6 +14,24 @@ const inputStyle = {
   boxSizing: "border-box"
 };
 
+// Normaliza un número argentino para wa.me: 54 + 9 + característica (sin 0)
+// + número (sin 15). Si ya viene en formato internacional (empieza con 54),
+// lo respeta. Devuelve "" si no hay número.
+const waNumero = (n) => {
+  const d = String(n || "").replace(/\D/g, "");
+  if (!d) return "";
+  return d.startsWith("54") ? d : "549" + d.replace(/^0/, "").replace(/^15/, "");
+};
+
+// Etiqueta legible del método de entrega para el mensaje del mostrador.
+const etiquetaEntrega = (metodo, validacion) => {
+  if (metodo === "sucursal") return "Retira en sucursal";
+  if (metodo === "courier") return "Courier";
+  return validacion === "en_sucursal"
+    ? "Flete — valida en la sucursal"
+    : "Flete — valida en la entrega";
+};
+
 export default function NuevoPedido() {
   const navigate = useNavigate();
 
@@ -52,7 +70,7 @@ export default function NuevoPedido() {
 
   const cargarCatalogos = useCallback(async () => {
     const [s, z, f] = await Promise.all([
-      supabase.from("sucursales").select("id, codigo, nombre").eq("activa", true).order("codigo"),
+      supabase.from("sucursales").select("id, codigo, nombre, whatsapp").eq("activa", true).order("codigo"),
       supabase.from("zonas").select("id, nombre").eq("activa", true).order("nombre"),
       supabase.from("perfiles").select("id, nombre_completo").eq("rol", "fletero").eq("activo", true)
     ]);
@@ -86,6 +104,30 @@ export default function NuevoPedido() {
     form.direccion_entrega.trim() &&
     (!esTarjeta || form.tarjeta_ultimos4.length === 4) &&
     !guardando;
+
+  // Arma el mensaje para el mostrador con los datos recién cargados.
+  // No re-consulta la base: estos campos son exactamente lo que se grabó.
+  function construirMensajeWa() {
+    const cabecera = [
+      form.numero_pedido.trim(),
+      form.cliente_nombre.trim(),
+      form.cliente_documento.trim() && `DNI ${form.cliente_documento.trim()}`,
+      form.cliente_telefono.trim()
+    ]
+      .filter(Boolean)
+      .join(" - ");
+
+    const entrega = "Entrega: " + etiquetaEntrega(form.metodo_entrega, form.validacion_lugar);
+
+    const items = articulos
+      .filter((a) => a.descripcion.trim())
+      .map((a) => {
+        const cod = a.codigo.trim();
+        return `${a.cantidad}- ${cod ? cod + "\t" : ""}${a.descripcion.trim()}`;
+      });
+
+    return [cabecera, entrega, ...items].filter(Boolean).join("\n");
+  }
 
   async function guardar() {
     setError("");
@@ -143,6 +185,22 @@ export default function NuevoPedido() {
     }
 
     setGuardando(false);
+
+    // --- Aviso al mostrador por WhatsApp -------------------------------
+    // El pedido ya quedó grabado. Si la sucursal tiene número configurado,
+    // abrimos WhatsApp en la MISMA pestaña con location.href.
+    // No usamos window.open(): después del await del insert el navegador ya
+    // no considera "gesto del usuario" y el pop-up se bloquea (sobre todo iOS).
+    // location.href es una navegación de nivel superior y sí se permite.
+    const suc = sucursales.find((s) => s.id === form.sucursal_id);
+    const numeroWa = waNumero(suc?.whatsapp);
+    if (numeroWa) {
+      const mensaje = construirMensajeWa();
+      window.location.href = `https://wa.me/${numeroWa}?text=${encodeURIComponent(mensaje)}`;
+      return; // el navegador sale a WhatsApp; no seguimos.
+    }
+
+    // Sucursal sin WhatsApp configurado: flujo normal.
     navigate("/sucursal");
   }
 
