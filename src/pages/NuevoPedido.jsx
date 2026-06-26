@@ -37,7 +37,6 @@ export default function NuevoPedido() {
 
   const [sucursales, setSucursales] = useState([]);
   const [zonas, setZonas] = useState([]);
-  const [fleteros, setFleteros] = useState([]);
 
   const [form, setForm] = useState({
     sucursal_id: "",
@@ -55,8 +54,7 @@ export default function NuevoPedido() {
     pago_fletero: "",
     cobra_fletero: false,
     monto_a_cobrar: "",
-    notas: "",
-    fletero_id: ""
+    notas: ""
   });
 
   const [articulos, setArticulos] = useState([
@@ -68,24 +66,58 @@ export default function NuevoPedido() {
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
+  // Catálogo de sucursales (no depende de la sucursal elegida).
   const cargarCatalogos = useCallback(async () => {
-    const [s, z, f] = await Promise.all([
-      supabase.from("sucursales").select("id, codigo, nombre, whatsapp").eq("activa", true).order("codigo"),
-      supabase.from("zonas").select("id, nombre").eq("activa", true).order("nombre"),
-      supabase.from("perfiles").select("id, nombre_completo").eq("rol", "fletero").eq("activo", true)
-    ]);
-    if (s.data) {
-      setSucursales(s.data);
-      if (s.data.length && !form.sucursal_id) set("sucursal_id", s.data[0].id);
+    const { data } = await supabase
+      .from("sucursales")
+      .select("id, codigo, nombre, whatsapp")
+      .eq("activa", true)
+      .order("codigo");
+    if (data) {
+      setSucursales(data);
+      if (data.length && !form.sucursal_id) set("sucursal_id", data[0].id);
     }
-    if (z.data) setZonas(z.data);
-    if (f.data) setFleteros(f.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     cargarCatalogos();
   }, [cargarCatalogos]);
+
+  // Las zonas dependen de la sucursal elegida: se recargan al cambiarla.
+  useEffect(() => {
+    if (!form.sucursal_id) {
+      setZonas([]);
+      return;
+    }
+    let cancelado = false;
+    (async () => {
+      const { data } = await supabase
+        .from("zonas")
+        .select("id, nombre, pago_fletero")
+        .eq("sucursal_id", form.sucursal_id)
+        .eq("activa", true)
+        .order("nombre");
+      if (!cancelado) setZonas(data ?? []);
+    })();
+    return () => { cancelado = true; };
+  }, [form.sucursal_id]);
+
+  // Al cambiar de sucursal, la zona anterior ya no aplica: la limpiamos.
+  function elegirSucursal(id) {
+    setForm((f) => ({ ...f, sucursal_id: id, zona_id: "" }));
+  }
+
+  // Al elegir zona, autocompletamos la tarifa (pago al fletero) si la zona
+  // tiene una cargada. Queda editable por si hay una excepción.
+  function elegirZona(zonaId) {
+    const z = zonas.find((x) => x.id === zonaId);
+    setForm((f) => ({
+      ...f,
+      zona_id: zonaId,
+      pago_fletero: z && z.pago_fletero != null ? String(z.pago_fletero) : f.pago_fletero
+    }));
+  }
 
   function setArticulo(i, campo, valor) {
     setArticulos((arr) => arr.map((a, idx) => (idx === i ? { ...a, [campo]: valor } : a)));
@@ -154,8 +186,8 @@ export default function NuevoPedido() {
           ? Number(form.monto_a_cobrar)
           : null,
       notas: form.notas.trim() || null,
-      fletero_id: form.fletero_id || null,
-      estado_actual: form.fletero_id ? "asignado" : "recibido"
+      fletero_id: null,
+      estado_actual: "recibido"
     };
 
     const { data, error: e1 } = await supabase
@@ -216,7 +248,7 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>Sucursal</label>
-          <select style={inputStyle} value={form.sucursal_id} onChange={(e) => set("sucursal_id", e.target.value)}>
+          <select style={inputStyle} value={form.sucursal_id} onChange={(e) => elegirSucursal(e.target.value)}>
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>
             ))}
@@ -248,9 +280,14 @@ export default function NuevoPedido() {
         {zonas.length > 0 && (
           <div className="field">
             <label>Zona</label>
-            <select style={inputStyle} value={form.zona_id} onChange={(e) => set("zona_id", e.target.value)}>
+            <select style={inputStyle} value={form.zona_id} onChange={(e) => elegirZona(e.target.value)}>
               <option value="">Sin zona</option>
-              {zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre}</option>)}
+              {zonas.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.nombre}
+                  {z.pago_fletero != null ? ` — $${Number(z.pago_fletero).toLocaleString("es-AR")}` : ""}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -298,6 +335,11 @@ export default function NuevoPedido() {
           <div className="field">
             <label>Precio del flete (pago al fletero)</label>
             <input style={inputStyle} inputMode="numeric" value={form.pago_fletero} onChange={(e) => set("pago_fletero", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$ — lo que cobra el fletero por la entrega" />
+            {form.zona_id && (
+              <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: "6px 0 0" }}>
+                Se completó con la tarifa de la zona. Podés cambiarlo para una excepción.
+              </p>
+            )}
           </div>
         )}
         {esContraEntrega && (
@@ -320,15 +362,6 @@ export default function NuevoPedido() {
           </div>
         ))}
         <button className="btn btn-ghost" style={{ marginBottom: 16 }} onClick={agregarArticulo}>+ Agregar artículo</button>
-
-        <p className="section-label" style={{ marginTop: 8 }}>Asignación</p>
-        <div className="field">
-          <label>Fletero (opcional)</label>
-          <select style={inputStyle} value={form.fletero_id} onChange={(e) => set("fletero_id", e.target.value)}>
-            <option value="">Asignar más tarde</option>
-            {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
-          </select>
-        </div>
 
         <div className="field">
           <label>Notas</label>

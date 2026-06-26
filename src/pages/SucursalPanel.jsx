@@ -61,25 +61,6 @@ export default function SucursalPanel() {
     cargarPedidos();
   }, [cargarPedidos]);
 
-  async function asignarFletero(pedido, fleteroId) {
-    const esReversa = pedido.tipo === "devolucion" || pedido.tipo === "cambio";
-    // En reversa el estado se queda en 'devolucion_pendiente' (no pasa a 'asignado').
-    const nuevoEstado = esReversa
-      ? "devolucion_pendiente"
-      : fleteroId
-      ? "asignado"
-      : "recibido";
-    const { error } = await supabase
-      .from("pedidos")
-      .update({ fletero_id: fleteroId || null, estado_actual: nuevoEstado })
-      .eq("id", pedido.id);
-    if (error) {
-      setErrorMsg("No se pudo asignar. " + error.message);
-      return;
-    }
-    cargarPedidos();
-  }
-
   // Crea un pedido de logística inversa heredando los datos del original.
   async function crearReversa(origen, tipo) {
     setCreando(true);
@@ -204,16 +185,9 @@ export default function SucursalPanel() {
               </div>
 
               {esFlete && (
-                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Fletero:</span>
-                  <select
-                    style={{ ...selStyle, flex: 1 }}
-                    value={p.fletero_id || ""}
-                    onChange={(e) => asignarFletero(p, e.target.value)}
-                  >
-                    <option value="">Sin asignar</option>
-                    {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
-                  </select>
+                <div style={{ marginTop: 10, fontSize: "0.85rem", color: "var(--muted)" }}>
+                  Fletero: <b style={{ color: "var(--ink)" }}>{nombreFletero(p.fletero_id) || "Sin asignar"}</b>
+                  <span style={{ marginLeft: 6, fontSize: "0.78rem" }}>· lo asigna el mostrador</span>
                 </div>
               )}
               {!esFlete && (

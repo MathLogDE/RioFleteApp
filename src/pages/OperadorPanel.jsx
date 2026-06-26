@@ -162,20 +162,21 @@ export default function OperadorPanel() {
   const [sucursales, setSucursales] = useState([]);
   const [sucursalSel, setSucursalSel] = useState("");
   const [pedidos, setPedidos] = useState([]);
+  const [fleteros, setFleteros] = useState([]);
   const [estado, setEstado] = useState("cargando");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("sucursales")
-        .select("id, codigo, nombre")
-        .eq("activa", true)
-        .order("codigo");
-      if (data) {
-        setSucursales(data);
-        if (data.length) setSucursalSel(data[0].id);
+      const [s, f] = await Promise.all([
+        supabase.from("sucursales").select("id, codigo, nombre").eq("activa", true).order("codigo"),
+        supabase.from("perfiles").select("id, nombre_completo").eq("rol", "fletero").eq("activo", true)
+      ]);
+      if (s.data) {
+        setSucursales(s.data);
+        if (s.data.length) setSucursalSel(s.data[0].id);
       }
+      if (f.data) setFleteros(f.data);
     })();
   }, []);
 
@@ -185,7 +186,7 @@ export default function OperadorPanel() {
     const { data, error } = await supabase
       .from("pedidos")
       .select(
-        "id, numero_pedido, cliente_nombre, cliente_documento, direccion_entrega, estado_actual, metodo_entrega, metodo_pago, validacion_lugar, pago_validado, monto, monto_a_cobrar"
+        "id, numero_pedido, cliente_nombre, cliente_documento, direccion_entrega, estado_actual, metodo_entrega, metodo_pago, validacion_lugar, pago_validado, monto, monto_a_cobrar, fletero_id, tipo"
       )
       .eq("sucursal_id", sucursalSel)
       .order("created_at", { ascending: false })
@@ -237,7 +238,35 @@ export default function OperadorPanel() {
     cargar();
   }
 
+  async function asignarFletero(pedido, fleteroId) {
+    const esReversa = pedido.tipo === "devolucion" || pedido.tipo === "cambio";
+    // En reversa el estado se queda en 'devolucion_pendiente' (no pasa a 'asignado').
+    const nuevoEstado = esReversa
+      ? "devolucion_pendiente"
+      : fleteroId
+      ? "asignado"
+      : "recibido";
+    const { error } = await supabase
+      .from("pedidos")
+      .update({ fletero_id: fleteroId || null, estado_actual: nuevoEstado })
+      .eq("id", pedido.id);
+    if (error) {
+      setErrorMsg("No se pudo asignar. " + error.message);
+      return;
+    }
+    cargar();
+  }
+
   const porRecibir = pedidos.filter((p) => p.estado_actual === "enviado");
+
+  // Pedidos que el operador puede asignar a un fletero:
+  // ventas de flete ya recibidas (o ya asignadas, para reasignar) y las
+  // reversas pendientes (que siempre son flete).
+  const asignables = pedidos.filter((p) => {
+    const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
+    if (esReversa) return p.estado_actual === "devolucion_pendiente";
+    return p.metodo_entrega === "flete" && ["recibido", "asignado"].includes(p.estado_actual);
+  });
   const validarFlete = pedidos.filter(
     (p) =>
       p.metodo_entrega === "flete" &&
@@ -296,6 +325,44 @@ export default function OperadorPanel() {
                 </button>
               </div>
             ))}
+
+            <p className="section-label" style={{ marginTop: 22 }}>Asignar fletero</p>
+            {asignables.length === 0 && <SeccionVacia>No hay pedidos para asignar.</SeccionVacia>}
+            {asignables.map((p) => {
+              const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
+              return (
+                <div className="card" key={p.id} style={{ cursor: "default" }}>
+                  <div className="card-top">
+                    <span className="cliente">{p.cliente_nombre}</span>
+                    <StatusBadge estado={p.estado_actual} />
+                  </div>
+                  {esReversa && (
+                    <div style={{ margin: "2px 0" }}>
+                      <span style={{
+                        fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase",
+                        letterSpacing: "0.04em", color: "var(--acento)",
+                        border: "1px solid var(--acento)", borderRadius: 6, padding: "2px 7px"
+                      }}>
+                        {p.tipo === "cambio" ? "Cambio" : "Devolución"}
+                      </span>
+                    </div>
+                  )}
+                  <div className="dir">{p.direccion_entrega}</div>
+                  <div className="meta"><span>#{p.numero_pedido || String(p.id).slice(0, 8)}</span></div>
+                  <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Fletero:</span>
+                    <select
+                      style={{ ...selStyle, flex: 1 }}
+                      value={p.fletero_id || ""}
+                      onChange={(e) => asignarFletero(p, e.target.value)}
+                    >
+                      <option value="">Sin asignar</option>
+                      {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
 
             <p className="section-label" style={{ marginTop: 22 }}>Validar para el fletero</p>
             {validarFlete.length === 0 && <SeccionVacia>Sin pedidos de flete para validar.</SeccionVacia>}

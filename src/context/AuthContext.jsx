@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   async function cargarPerfil(userId) {
     const { data, error } = await supabase
       .from("perfiles")
-      .select("id, nombre_completo, rol, activo")
+      .select("id, nombre_completo, rol, activo, estado")
       .eq("id", userId)
       .single();
 
@@ -58,6 +58,7 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     perfil,
     rol: perfil?.rol ?? null,
+    estado: perfil?.estado ?? null,
     loading,
     signOut: () => supabase.auth.signOut()
   };

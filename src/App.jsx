@@ -10,6 +10,8 @@ import NuevoPedido from "./pages/NuevoPedido";
 import OperadorPanel from "./pages/OperadorPanel";
 import GerenciaPanel from "./pages/GerenciaPanel";
 import DashboardGerencia from "./pages/DashboardGerencia";
+import ZonasPanel from "./pages/ZonasPanel";
+import Registro from "./pages/Registro";
 
 // Decide a dónde mandar al usuario según su rol al entrar a "/".
 function Inicio() {
@@ -70,6 +72,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
+            <Route path="/registro" element={<Registro />} />
             <Route
               path="/"
               element={
@@ -131,6 +134,14 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["gerencia", "admin"]}>
                   <GerenciaPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gerencia/zonas"
+              element={
+                <ProtectedRoute roles={["gerencia", "admin"]}>
+                  <ZonasPanel />
                 </ProtectedRoute>
               }
             />

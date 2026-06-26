@@ -173,6 +173,7 @@ export default function DashboardGerencia() {
   return (
     <div className="app-shell">
       <Topbar>
+        <button className="linklike" onClick={() => navigate("/gerencia/zonas")}>Zonas</button>
         <button className="linklike" onClick={() => navigate("/gerencia/pagos")}>Pagos →</button>
       </Topbar>
 
