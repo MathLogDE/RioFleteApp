@@ -12,6 +12,8 @@ import GerenciaPanel from "./pages/GerenciaPanel";
 import DashboardGerencia from "./pages/DashboardGerencia";
 import ZonasPanel from "./pages/ZonasPanel";
 import Registro from "./pages/Registro";
+import AltasPanel from "./pages/AltasPanel";
+import MiPerfil from "./pages/MiPerfil";
 
 // Decide a dónde mandar al usuario según su rol al entrar a "/".
 function Inicio() {
@@ -142,6 +144,22 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["gerencia", "admin"]}>
                   <ZonasPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/altas"
+              element={
+                <ProtectedRoute roles={["admin"]}>
+                  <AltasPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/perfil"
+              element={
+                <ProtectedRoute>
+                  <MiPerfil />
                 </ProtectedRoute>
               }
             />

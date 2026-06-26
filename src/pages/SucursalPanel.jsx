@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
 
@@ -15,6 +16,7 @@ const selStyle = {
 
 export default function SucursalPanel() {
   const navigate = useNavigate();
+  const { rol } = useAuth();
   const [sucursales, setSucursales] = useState([]);
   const [sucursalSel, setSucursalSel] = useState("");
   const [fleteros, setFleteros] = useState([]);
@@ -122,6 +124,9 @@ export default function SucursalPanel() {
   return (
     <div className="app-shell">
       <Topbar>
+        {rol === "admin" && (
+          <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
+        )}
         <button className="linklike" onClick={() => navigate("/sucursal/nuevo")}>+ Pedido</button>
       </Topbar>
 
