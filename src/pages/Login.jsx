@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Logo from "../components/Logo";
 
@@ -82,6 +83,11 @@ export default function Login() {
         >
           {enviando ? "Ingresando…" : "Ingresar"}
         </button>
+
+        <p style={{ textAlign: "center", marginTop: 18, fontSize: "0.9rem", color: "var(--ink-soft)" }}>
+          ¿No tenés cuenta?{" "}
+          <Link className="linklike" to="/registro" style={{ color: "var(--acento)" }}>Crear cuenta</Link>
+        </p>
       </div>
     </div>
   );
