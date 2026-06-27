@@ -3,17 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
 
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  width: "100%",
-  boxSizing: "border-box"
-};
-
 const ROLES = [
   { v: "fletero", t: "Fletero" },
   { v: "operador", t: "Mostrador" },
@@ -180,13 +169,13 @@ export default function AltasPanel() {
               <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", gap: 8 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: "0.78rem", color: "var(--muted)" }}>Rol</label>
-                  <select style={selStyle} value={p._rol} onChange={(e) => editar(p.id, "_rol", e.target.value)}>
+                  <select className="select-sm" style={{ width: "100%", boxSizing: "border-box" }} value={p._rol} onChange={(e) => editar(p.id, "_rol", e.target.value)}>
                     {ROLES.map((r) => <option key={r.v} value={r.v}>{r.t}</option>)}
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: "0.78rem", color: "var(--muted)" }}>Sucursal</label>
-                  <select style={selStyle} value={p._sucursal} onChange={(e) => editar(p.id, "_sucursal", e.target.value)}>
+                  <select className="select-sm" style={{ width: "100%", boxSizing: "border-box" }} value={p._sucursal} onChange={(e) => editar(p.id, "_sucursal", e.target.value)}>
                     {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
                   </select>
                 </div>

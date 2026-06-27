@@ -2,28 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
-
-const peso = (n) => "$ " + Number(n || 0).toLocaleString("es-AR");
-
-const inputStyle = {
-  width: "100%",
-  padding: 11,
-  fontSize: "1rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  boxSizing: "border-box"
-};
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
+import { peso } from "../lib/formato";
 
 const soloNum = (v) => v.replace(/[^\d.]/g, "");
 
@@ -156,7 +135,7 @@ export default function ZonasPanel() {
 
         <div className="field">
           <label>Sucursal</label>
-          <select style={{ ...selStyle, width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+          <select className="select-sm" style={{ width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>
             ))}
@@ -192,13 +171,13 @@ export default function ZonasPanel() {
                   >
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <input
-                        style={{ ...inputStyle, flex: 1 }}
+                        className="input" style={{ flex: 1 }}
                         value={z.nombre}
                         onChange={(e) => editarCampo(z.id, "nombre", e.target.value)}
                         placeholder="Nombre de la zona"
                       />
                       <input
-                        style={{ ...inputStyle, flex: "0 0 120px" }}
+                        className="input" style={{ flex: "0 0 120px" }}
                         inputMode="numeric"
                         value={z.pago_fletero ?? ""}
                         onChange={(e) => editarCampo(z.id, "pago_fletero", soloNum(e.target.value))}
@@ -233,13 +212,13 @@ export default function ZonasPanel() {
             <p className="section-label" style={{ marginTop: 22 }}>Nueva zona</p>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                className="input" style={{ flex: 1 }}
                 value={nueva.nombre}
                 onChange={(e) => setNueva((n) => ({ ...n, nombre: e.target.value }))}
                 placeholder="Nombre (ej. Centro, Zona Norte)"
               />
               <input
-                style={{ ...inputStyle, flex: "0 0 120px" }}
+                className="input" style={{ flex: "0 0 120px" }}
                 inputMode="numeric"
                 value={nueva.pago_fletero}
                 onChange={(e) => setNueva((n) => ({ ...n, pago_fletero: soloNum(e.target.value) }))}

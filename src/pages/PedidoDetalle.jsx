@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { comprimirImagen } from "../lib/imagen";
 import { obtenerUbicacion } from "../lib/geo";
+import { subirEvidencia } from "../lib/archivos";
 import StatusBadge from "../components/StatusBadge";
 import Topbar from "../components/Topbar";
 
@@ -122,33 +122,11 @@ export default function PedidoDetalle() {
     else setPedido((p) => ({ ...p, estado_actual: nuevo }));
   }
 
-  async function subirEvidencia(file, tipo, coincide = null) {
+  async function manejarEvidencia(file, tipo, coincide = null) {
     setErrorMsg("");
     setAccionEnCurso("Subiendo...");
     try {
-      const esPdf = file.type === "application/pdf";
-      // Las fotos se comprimen; los PDF (facturas) se suben tal cual.
-      const cuerpo = esPdf ? file : await comprimirImagen(file);
-      const ext = esPdf ? "pdf" : "jpg";
-      const contentType = esPdf ? "application/pdf" : "image/jpeg";
-      const ruta = `${id}/${tipo}_${Date.now()}.${ext}`;
-
-      const { error: eUp } = await supabase.storage
-        .from("evidencias")
-        .upload(ruta, cuerpo, { contentType });
-      if (eUp) throw eUp;
-
-      const { lat, lng } = await obtenerUbicacion();
-      const { error: eIns } = await supabase.from("evidencias").insert({
-        pedido_id: id,
-        tipo,
-        archivo_url: ruta,
-        documento_coincide: coincide,
-        lat,
-        lng
-      });
-      if (eIns) throw eIns;
-
+      await subirEvidencia({ pedidoId: id, tipo, file, documentoCoincide: coincide });
       if (tipo === "foto_entrega") setFotoSubida(true);
       if (tipo === "escaneo_documento") setDocSubido(true);
       if (tipo === "factura") setFacturas((n) => n + 1);
@@ -335,7 +313,7 @@ export default function PedidoDetalle() {
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) subirEvidencia(f, "factura");
+                if (f) manejarEvidencia(f, "factura");
                 e.target.value = "";
               }}
             />
@@ -349,7 +327,7 @@ export default function PedidoDetalle() {
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) subirEvidencia(f, "factura");
+                if (f) manejarEvidencia(f, "factura");
                 e.target.value = "";
               }}
             />
@@ -385,7 +363,7 @@ export default function PedidoDetalle() {
                 : "Foto del producto retirado"}
             </div>
             <input ref={inputFoto} type="file" accept="image/*" capture="environment" hidden
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) subirEvidencia(f, "foto_entrega"); e.target.value = ""; }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) manejarEvidencia(f, "foto_entrega"); e.target.value = ""; }} />
             {!fotoSubida && (
               <button className="btn btn-ghost" style={{ marginBottom: 16 }} disabled={ocupado} onClick={() => inputFoto.current?.click()}>
                 {ocupado ? accionEnCurso : "Tomar foto"}
@@ -485,7 +463,7 @@ export default function PedidoDetalle() {
               {fotoSubida ? "✓ Foto de entrega subida" : "Foto del paquete entregado"}
             </div>
             <input ref={inputFoto} type="file" accept="image/*" capture="environment" hidden
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) subirEvidencia(f, "foto_entrega"); e.target.value = ""; }} />
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) manejarEvidencia(f, "foto_entrega"); e.target.value = ""; }} />
             {!fotoSubida && (
               <button className="btn btn-ghost" style={{ marginBottom: 16 }} disabled={ocupado} onClick={() => inputFoto.current?.click()}>
                 {ocupado ? accionEnCurso : "Tomar foto de entrega"}
@@ -507,7 +485,7 @@ export default function PedidoDetalle() {
                   El documento coincide con el titular
                 </label>
                 <input ref={inputDoc} type="file" accept="image/*" capture="environment" hidden
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) subirEvidencia(f, "escaneo_documento", docCoincide); e.target.value = ""; }} />
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) manejarEvidencia(f, "escaneo_documento", docCoincide); e.target.value = ""; }} />
                 <button className="btn btn-ghost" style={{ marginBottom: 16 }} disabled={ocupado} onClick={() => inputDoc.current?.click()}>
                   {ocupado ? accionEnCurso : "Foto del documento"}
                 </button>

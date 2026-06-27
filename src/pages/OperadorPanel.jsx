@@ -1,19 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { comprimirImagen } from "../lib/imagen";
-import { obtenerUbicacion } from "../lib/geo";
+import { subirEvidencia } from "../lib/archivos";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
 
 const inputCorto = {
   padding: 11,
@@ -100,23 +90,12 @@ function SubirDni({ pedidoId }) {
     setEstado("subiendo");
     setMsg("");
     try {
-      const cuerpo = await comprimirImagen(file);
-      const ruta = `${pedidoId}/escaneo_documento_${Date.now()}.jpg`;
-      const { error: eUp } = await supabase.storage
-        .from("evidencias")
-        .upload(ruta, cuerpo, { contentType: "image/jpeg" });
-      if (eUp) throw eUp;
-
-      const { lat, lng } = await obtenerUbicacion();
-      const { error: eIns } = await supabase.from("evidencias").insert({
-        pedido_id: pedidoId,
+      await subirEvidencia({
+        pedidoId,
         tipo: "escaneo_documento",
-        archivo_url: ruta,
-        documento_coincide: coincide,
-        lat,
-        lng
+        file,
+        documentoCoincide: coincide
       });
-      if (eIns) throw eIns;
       setEstado("ok");
     } catch (err) {
       setEstado("error");
@@ -291,7 +270,7 @@ export default function OperadorPanel() {
       <main className="content">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
           {sucursales.length > 1 ? (
-            <select style={selStyle} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+            <select className="select-sm" value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
               {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
             </select>
           ) : (
@@ -352,7 +331,8 @@ export default function OperadorPanel() {
                   <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Fletero:</span>
                     <select
-                      style={{ ...selStyle, flex: 1 }}
+                      className="select-sm"
+                      style={{ flex: 1 }}
                       value={p.fletero_id || ""}
                       onChange={(e) => asignarFletero(p, e.target.value)}
                     >

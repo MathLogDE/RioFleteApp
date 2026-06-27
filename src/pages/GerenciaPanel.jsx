@@ -3,17 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import Topbar from "../components/Topbar";
-
-const peso = (n) => "$ " + Number(n || 0).toLocaleString("es-AR");
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
+import { peso } from "../lib/formato";
+import { abrirArchivo } from "../lib/archivos";
 
 const fechaCorta = (iso) =>
   iso ? new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "";
@@ -91,12 +82,11 @@ export default function GerenciaPanel() {
   }, [cargar]);
 
   async function verFactura(path) {
-    const { data, error } = await supabase.storage.from("evidencias").createSignedUrl(path, 60);
-    if (error) {
+    try {
+      await abrirArchivo("evidencias", path);
+    } catch (error) {
       setErrorMsg("No se pudo abrir la factura. " + error.message);
-      return;
     }
-    window.open(data.signedUrl, "_blank");
   }
 
   async function pagarLote(fleteroId, metodo) {
@@ -156,7 +146,7 @@ export default function GerenciaPanel() {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <select style={{ ...selStyle, width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+          <select className="select-sm" style={{ width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
             <option value="">Todas las sucursales</option>
             {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
           </select>

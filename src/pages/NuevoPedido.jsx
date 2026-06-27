@@ -3,17 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
 
-const inputStyle = {
-  width: "100%",
-  padding: 13,
-  fontSize: "1.02rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  boxSizing: "border-box"
-};
-
 // Normaliza un número argentino para wa.me: 54 + 9 + característica (sin 0)
 // + número (sin 15). Si ya viene en formato internacional (empieza con 54),
 // lo respeta. Devuelve "" si no hay número.
@@ -248,7 +237,7 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>Sucursal</label>
-          <select style={inputStyle} value={form.sucursal_id} onChange={(e) => elegirSucursal(e.target.value)}>
+          <select value={form.sucursal_id} onChange={(e) => elegirSucursal(e.target.value)}>
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>
             ))}
@@ -257,30 +246,30 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>N° de pedido</label>
-          <input style={inputStyle} value={form.numero_pedido} onChange={(e) => set("numero_pedido", e.target.value)} placeholder="Opcional" />
+          <input value={form.numero_pedido} onChange={(e) => set("numero_pedido", e.target.value)} placeholder="Opcional" />
         </div>
 
         <p className="section-label" style={{ marginTop: 8 }}>Cliente</p>
         <div className="field">
           <label>Nombre o razón social</label>
-          <input style={inputStyle} value={form.cliente_nombre} onChange={(e) => set("cliente_nombre", e.target.value)} />
+          <input value={form.cliente_nombre} onChange={(e) => set("cliente_nombre", e.target.value)} />
         </div>
         <div className="field">
           <label>Documento</label>
-          <input style={inputStyle} value={form.cliente_documento} onChange={(e) => set("cliente_documento", e.target.value)} />
+          <input value={form.cliente_documento} onChange={(e) => set("cliente_documento", e.target.value)} />
         </div>
         <div className="field">
           <label>Teléfono</label>
-          <input style={inputStyle} inputMode="tel" value={form.cliente_telefono} onChange={(e) => set("cliente_telefono", e.target.value)} />
+          <input inputMode="tel" value={form.cliente_telefono} onChange={(e) => set("cliente_telefono", e.target.value)} />
         </div>
         <div className="field">
           <label>Dirección de entrega</label>
-          <input style={inputStyle} value={form.direccion_entrega} onChange={(e) => set("direccion_entrega", e.target.value)} />
+          <input value={form.direccion_entrega} onChange={(e) => set("direccion_entrega", e.target.value)} />
         </div>
         {zonas.length > 0 && (
           <div className="field">
             <label>Zona</label>
-            <select style={inputStyle} value={form.zona_id} onChange={(e) => elegirZona(e.target.value)}>
+            <select value={form.zona_id} onChange={(e) => elegirZona(e.target.value)}>
               <option value="">Sin zona</option>
               {zonas.map((z) => (
                 <option key={z.id} value={z.id}>
@@ -295,7 +284,7 @@ export default function NuevoPedido() {
         <p className="section-label" style={{ marginTop: 8 }}>Entrega y pago</p>
         <div className="field">
           <label>Método de entrega</label>
-          <select style={inputStyle} value={form.metodo_entrega} onChange={(e) => set("metodo_entrega", e.target.value)}>
+          <select value={form.metodo_entrega} onChange={(e) => set("metodo_entrega", e.target.value)}>
             <option value="flete">Flete (domicilio)</option>
             <option value="sucursal">Retiro en sucursal</option>
             <option value="courier">Courier</option>
@@ -304,7 +293,7 @@ export default function NuevoPedido() {
         {esFlete && (
           <div className="field">
             <label>Dónde se valida</label>
-            <select style={inputStyle} value={form.validacion_lugar} onChange={(e) => set("validacion_lugar", e.target.value)}>
+            <select value={form.validacion_lugar} onChange={(e) => set("validacion_lugar", e.target.value)}>
               <option value="en_entrega">El fletero valida en la entrega</option>
               <option value="en_sucursal">El cliente valida en la sucursal</option>
             </select>
@@ -312,7 +301,7 @@ export default function NuevoPedido() {
         )}
         <div className="field">
           <label>Método de pago</label>
-          <select style={inputStyle} value={form.metodo_pago} onChange={(e) => set("metodo_pago", e.target.value)}>
+          <select value={form.metodo_pago} onChange={(e) => set("metodo_pago", e.target.value)}>
             <option value="tarjeta">Tarjeta</option>
             <option value="transferencia">Transferencia</option>
             <option value="mercadopago">Mercado Pago</option>
@@ -322,19 +311,19 @@ export default function NuevoPedido() {
         {esTarjeta && (
           <div className="field">
             <label>Últimos 4 de la tarjeta</label>
-            <input style={inputStyle} inputMode="numeric" maxLength={4} value={form.tarjeta_ultimos4}
+            <input inputMode="numeric" maxLength={4} value={form.tarjeta_ultimos4}
               onChange={(e) => set("tarjeta_ultimos4", e.target.value.replace(/\D/g, "").slice(0, 4))}
               placeholder="Para validar en la entrega" />
           </div>
         )}
         <div className="field">
           <label>Total de la venta</label>
-          <input style={inputStyle} inputMode="numeric" value={form.monto} onChange={(e) => set("monto", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
+          <input inputMode="numeric" value={form.monto} onChange={(e) => set("monto", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
         </div>
         {!esRetiro && (
           <div className="field">
             <label>Precio del flete (pago al fletero)</label>
-            <input style={inputStyle} inputMode="numeric" value={form.pago_fletero} onChange={(e) => set("pago_fletero", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$ — lo que cobra el fletero por la entrega" />
+            <input inputMode="numeric" value={form.pago_fletero} onChange={(e) => set("pago_fletero", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$ — lo que cobra el fletero por la entrega" />
             {form.zona_id && (
               <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: "6px 0 0" }}>
                 Se completó con la tarifa de la zona. Podés cambiarlo para una excepción.
@@ -345,16 +334,16 @@ export default function NuevoPedido() {
         {esContraEntrega && (
           <div className="field">
             <label>Monto a cobrar al cliente</label>
-            <input style={inputStyle} inputMode="numeric" value={form.monto_a_cobrar} onChange={(e) => set("monto_a_cobrar", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
+            <input inputMode="numeric" value={form.monto_a_cobrar} onChange={(e) => set("monto_a_cobrar", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
           </div>
         )}
 
         <p className="section-label" style={{ marginTop: 8 }}>Artículos</p>
         {articulos.map((a, i) => (
           <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-            <input style={{ ...inputStyle, flex: "0 0 70px" }} placeholder="Cód." value={a.codigo} onChange={(e) => setArticulo(i, "codigo", e.target.value)} />
-            <input style={{ ...inputStyle, flex: 1 }} placeholder="Descripción" value={a.descripcion} onChange={(e) => setArticulo(i, "descripcion", e.target.value)} />
-            <input style={{ ...inputStyle, flex: "0 0 56px", textAlign: "center" }} inputMode="numeric" value={a.cantidad} onChange={(e) => setArticulo(i, "cantidad", e.target.value.replace(/\D/g, ""))} />
+            <input className="input" style={{ flex: "0 0 70px" }} placeholder="Cód." value={a.codigo} onChange={(e) => setArticulo(i, "codigo", e.target.value)} />
+            <input className="input" style={{ flex: 1 }} placeholder="Descripción" value={a.descripcion} onChange={(e) => setArticulo(i, "descripcion", e.target.value)} />
+            <input className="input" style={{ flex: "0 0 56px", textAlign: "center" }} inputMode="numeric" value={a.cantidad} onChange={(e) => setArticulo(i, "cantidad", e.target.value.replace(/\D/g, ""))} />
             {articulos.length > 1 && (
               <button onClick={() => quitarArticulo(i)} aria-label="Quitar"
                 style={{ flex: "0 0 auto", background: "none", border: "none", color: "var(--st-fallido)", fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 }}>×</button>
@@ -365,7 +354,7 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>Notas</label>
-          <textarea style={{ ...inputStyle, minHeight: 70, resize: "vertical" }} value={form.notas} onChange={(e) => set("notas", e.target.value)} />
+          <textarea style={{ minHeight: 70, resize: "vertical" }} value={form.notas} onChange={(e) => set("notas", e.target.value)} />
         </div>
 
         <button className="btn btn-primary" disabled={!puedeGuardar} onClick={guardar}>

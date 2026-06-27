@@ -89,14 +89,27 @@ button { font-family: inherit; }
   display: block; font-size: 0.8125rem; font-weight: 600; color: var(--ink-soft);
   text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px;
 }
-.field input {
+/* Controles de formulario: misma apariencia para input/select/textarea, ya sea
+   dentro de un .field o usando la clase .input directamente (filas sueltas). */
+.field input, .field select, .field textarea, .input {
   width: 100%; padding: 14px; font-size: 1.0625rem;
   border: 1px solid var(--line-strong); border-radius: var(--r-md);
-  background: var(--surface); color: var(--ink);
+  background: var(--surface); color: var(--ink); box-sizing: border-box;
 }
-.field input:focus {
+.field input:focus, .field select:focus, .field textarea:focus, .input:focus {
   outline: none; border-color: var(--acento);
   box-shadow: 0 0 0 3px rgba(216,15,31,.18);
+}
+/* Campos de solo lectura (ej. email / DNI en Mi perfil). */
+.field input:disabled, .input:disabled {
+  background: var(--chip-bg); color: var(--muted);
+}
+
+/* Select chico para barras de filtro / acciones (sucursal, fletero, etc.). */
+.select-sm {
+  padding: 8px 10px; font-size: 0.9rem;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
 }
 
 /* ---------- Layout ---------- */

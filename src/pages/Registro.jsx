@@ -3,17 +3,6 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Logo from "../components/Logo";
 
-const selStyle = {
-  width: "100%",
-  padding: 13,
-  fontSize: "1.02rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  boxSizing: "border-box"
-};
-
 export default function Registro() {
   const [sucursales, setSucursales] = useState([]);
   const [f, setF] = useState({
@@ -126,7 +115,7 @@ export default function Registro() {
 
         <div className="field">
           <label>Me registro como</label>
-          <select style={selStyle} value={f.rol} onChange={(e) => set("rol", e.target.value)}>
+          <select value={f.rol} onChange={(e) => set("rol", e.target.value)}>
             <option value="fletero">Fletero</option>
             <option value="operador">Mostrador</option>
           </select>
@@ -134,7 +123,7 @@ export default function Registro() {
 
         <div className="field">
           <label>Sucursal</label>
-          <select style={selStyle} value={f.sucursal_solicitada} onChange={(e) => set("sucursal_solicitada", e.target.value)}>
+          <select value={f.sucursal_solicitada} onChange={(e) => set("sucursal_solicitada", e.target.value)}>
             {sucursales.length === 0 && <option value="">Cargando…</option>}
             {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
           </select>
@@ -174,7 +163,7 @@ export default function Registro() {
             </div>
             <div className="field">
               <label>Condición frente al IVA</label>
-              <select style={selStyle} value={f.condicion_iva} onChange={(e) => set("condicion_iva", e.target.value)}>
+              <select value={f.condicion_iva} onChange={(e) => set("condicion_iva", e.target.value)}>
                 <option value="monotributo">Monotributo</option>
                 <option value="responsable_inscripto">Responsable inscripto</option>
                 <option value="exento">Exento</option>
