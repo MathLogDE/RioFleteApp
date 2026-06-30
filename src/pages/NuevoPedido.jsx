@@ -184,7 +184,9 @@ export default function NuevoPedido() {
           : null,
       notas: form.notas.trim() || null,
       fletero_id: null,
-      estado_actual: "recibido"
+      // Nace "sin recibir": queda en "Por recibir" del mostrador, que lo marca
+      // como recibido en sucursal antes de poder asignarlo a un fletero.
+      estado_actual: "enviado"
     };
 
     const { data, error: e1 } = await supabase
