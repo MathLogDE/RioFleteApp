@@ -113,6 +113,7 @@ export default function AltasPanel() {
   return (
     <div className="app-shell">
       <Topbar>
+        <button className="linklike" onClick={() => navigate("/admin/usuarios")}>Usuarios</button>
         <button className="linklike" onClick={() => navigate("/")}>← Volver</button>
       </Topbar>
 
