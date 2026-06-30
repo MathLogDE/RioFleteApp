@@ -119,7 +119,7 @@ export default function UsuariosPanel() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
         <button className="linklike" onClick={() => navigate("/")}>← Volver</button>
@@ -146,7 +146,9 @@ export default function UsuariosPanel() {
           </div>
         )}
 
-        {estado === "ok" && usuarios.map((u) => {
+        {estado === "ok" && usuarios.length > 0 && (
+        <div className="grid-cards">
+        {usuarios.map((u) => {
           const esYo = u.id === user?.id;
           const enProceso = procesando === u.id;
           const sucDirty = !mismaSeleccion(u._suc, u.sucursal_ids);
@@ -245,6 +247,8 @@ export default function UsuariosPanel() {
             </div>
           );
         })}
+        </div>
+        )}
       </main>
     </div>
   );

@@ -134,7 +134,7 @@ export default function GerenciaPanel() {
   );
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         <button className="linklike" onClick={() => navigate("/gerencia")}>← Resumen</button>
       </Topbar>
@@ -191,6 +191,8 @@ export default function GerenciaPanel() {
               </div>
             )}
 
+            {Object.keys(grupos).length > 0 && (
+            <div className="grid-cards">
             {Object.entries(grupos).map(([fleteroId, items]) => {
               const subtotal = items.reduce((a, p) => a + (Number(p.pago_fletero) || 0), 0);
               return (
@@ -242,6 +244,8 @@ export default function GerenciaPanel() {
                 </div>
               );
             })}
+            </div>
+            )}
           </>
         )}
       </main>

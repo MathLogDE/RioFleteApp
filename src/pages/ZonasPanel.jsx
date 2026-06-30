@@ -121,7 +121,7 @@ export default function ZonasPanel() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         <button className="linklike" onClick={() => navigate("/gerencia")}>← Resumen</button>
       </Topbar>
@@ -157,7 +157,7 @@ export default function ZonasPanel() {
                 Esta sucursal todavía no tiene zonas. Agregá la primera abajo.
               </p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+              <div className="grid-cards" style={{ marginTop: 4 }}>
                 {zonas.map((z) => (
                   <div
                     key={z.id}

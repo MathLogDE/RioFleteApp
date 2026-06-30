@@ -111,7 +111,7 @@ export default function AltasPanel() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         <button className="linklike" onClick={() => navigate("/admin/usuarios")}>Usuarios</button>
         <button className="linklike" onClick={() => navigate("/")}>← Volver</button>
@@ -136,7 +136,9 @@ export default function AltasPanel() {
           </div>
         )}
 
-        {estado === "ok" && pendientes.map((p) => {
+        {estado === "ok" && pendientes.length > 0 && (
+        <div className="grid-cards">
+        {pendientes.map((p) => {
           const esFletero = p.rol === "fletero";
           const enProceso = procesando === p.id;
           return (
@@ -195,6 +197,8 @@ export default function AltasPanel() {
             </div>
           );
         })}
+        </div>
+        )}
       </main>
     </div>
   );

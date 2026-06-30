@@ -264,7 +264,7 @@ export default function OperadorPanel() {
   );
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar />
 
       <main className="content">
@@ -292,6 +292,7 @@ export default function OperadorPanel() {
 
             <p className="section-label">Por recibir — en distribución</p>
             {porRecibir.length === 0 && <SeccionVacia>Nada llegando por ahora.</SeccionVacia>}
+            <div className="grid-cards">
             {porRecibir.map((p) => (
               <div className="card" key={p.id} style={{ cursor: "default" }}>
                 <div className="card-top">
@@ -304,9 +305,11 @@ export default function OperadorPanel() {
                 </button>
               </div>
             ))}
+            </div>
 
             <p className="section-label" style={{ marginTop: 22 }}>Asignar fletero</p>
             {asignables.length === 0 && <SeccionVacia>No hay pedidos para asignar.</SeccionVacia>}
+            <div className="grid-cards">
             {asignables.map((p) => {
               const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
               return (
@@ -343,9 +346,11 @@ export default function OperadorPanel() {
                 </div>
               );
             })}
+            </div>
 
             <p className="section-label" style={{ marginTop: 22 }}>Validar para el fletero</p>
             {validarFlete.length === 0 && <SeccionVacia>Sin pedidos de flete para validar.</SeccionVacia>}
+            <div className="grid-cards">
             {validarFlete.map((p) => (
               <div className="card" key={p.id} style={{ cursor: "default" }}>
                 <div className="card-top">
@@ -358,9 +363,11 @@ export default function OperadorPanel() {
                 <ValidarTarjeta pedidoId={p.id} onValidado={cargar} />
               </div>
             ))}
+            </div>
 
             <p className="section-label" style={{ marginTop: 22 }}>Entregar en mostrador</p>
             {mostrador.length === 0 && <SeccionVacia>Sin retiros pendientes.</SeccionVacia>}
+            <div className="grid-cards">
             {mostrador.map((p) => {
               const requiereValidar = p.metodo_pago === "tarjeta" && p.pago_validado !== true;
               return (
@@ -385,6 +392,7 @@ export default function OperadorPanel() {
                 </div>
               );
             })}
+            </div>
           </>
         )}
       </main>

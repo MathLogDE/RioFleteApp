@@ -113,7 +113,7 @@ export default function SucursalPanel() {
   const nombreFletero = (id) => fleteros.find((f) => f.id === id)?.nombre_completo;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         {rol === "admin" && (
           <>
@@ -155,7 +155,9 @@ export default function SucursalPanel() {
           </div>
         )}
 
-        {estado === "ok" && pedidos.map((p) => {
+        {estado === "ok" && pedidos.length > 0 && (
+        <div className="grid-cards">
+        {pedidos.map((p) => {
           const esFlete = p.metodo_entrega === "flete";
           const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
           const puedeGenerarReversa =
@@ -232,6 +234,8 @@ export default function SucursalPanel() {
             </div>
           );
         })}
+        </div>
+        )}
       </main>
     </div>
   );

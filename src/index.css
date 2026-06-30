@@ -140,6 +140,27 @@ button { font-family: inherit; }
   text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 4px 0 12px;
 }
 
+/* ---------- Listas de cards (gap consistente; grilla en desktop) ----------
+   Wrapper para listas de pedidos/usuarios. En móvil es una columna simple
+   (igual que antes); en pantallas grandes pasa a grilla fluida. El gap
+   reemplaza al margin-bottom de la card para que el espaciado sea uniforme. */
+.grid-cards { display: flex; flex-direction: column; gap: 12px; }
+.grid-cards .card { margin-bottom: 0; }
+
+/* ---------- Back-office en PC ----------
+   Solo los paneles marcados con .wide se ensanchan; el fletero, el login y
+   los formularios siguen en la columna angosta (--app-max). */
+@media (min-width: 760px) {
+  .app-shell.wide { max-width: 1080px; }
+  .app-shell.wide .content { padding: 24px 28px; }
+  .app-shell.wide .grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+}
+
 /* ---------- Card de pedido ---------- */
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
