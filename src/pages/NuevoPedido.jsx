@@ -34,6 +34,7 @@ export default function NuevoPedido() {
     cliente_documento: "",
     cliente_telefono: "",
     direccion_entrega: "",
+    cp: "",
     zona_id: "",
     metodo_entrega: "flete",
     metodo_pago: "tarjeta",
@@ -83,7 +84,7 @@ export default function NuevoPedido() {
     (async () => {
       const { data } = await supabase
         .from("zonas")
-        .select("id, nombre, pago_fletero")
+        .select("id, nombre, cp, pago_fletero")
         .eq("sucursal_id", form.sucursal_id)
         .eq("activa", true)
         .order("nombre");
@@ -92,18 +93,21 @@ export default function NuevoPedido() {
     return () => { cancelado = true; };
   }, [form.sucursal_id]);
 
-  // Al cambiar de sucursal, la zona anterior ya no aplica: la limpiamos.
+  // Al cambiar de sucursal, el CP/zona anterior ya no aplica: lo limpiamos.
   function elegirSucursal(id) {
-    setForm((f) => ({ ...f, sucursal_id: id, zona_id: "" }));
+    setForm((f) => ({ ...f, sucursal_id: id, cp: "", zona_id: "" }));
   }
 
-  // Al elegir zona, autocompletamos la tarifa (pago al fletero) si la zona
-  // tiene una cargada. Queda editable por si hay una excepción.
-  function elegirZona(zonaId) {
-    const z = zonas.find((x) => x.id === zonaId);
+  // Al tipear el CP, buscamos la zona de esta sucursal con ese CP. Si la
+  // encontramos, fijamos la zona y autocompletamos la tarifa (pago al fletero).
+  // La tarifa queda editable por si hay una excepción.
+  function elegirCp(cpRaw) {
+    const clave = cpRaw.trim().toUpperCase();
+    const z = clave ? zonas.find((x) => (x.cp || "").trim().toUpperCase() === clave) : null;
     setForm((f) => ({
       ...f,
-      zona_id: zonaId,
+      cp: cpRaw,
+      zona_id: z ? z.id : "",
       pago_fletero: z && z.pago_fletero != null ? String(z.pago_fletero) : f.pago_fletero
     }));
   }
@@ -118,6 +122,10 @@ export default function NuevoPedido() {
   const esFlete = form.metodo_entrega === "flete";
   const esRetiro = form.metodo_entrega === "sucursal";
   const esContraEntrega = form.metodo_pago === "contra_entrega";
+
+  // Zona resuelta a partir del CP tipeado (para mostrar nombre/tarifa).
+  const zonaSel = zonas.find((z) => z.id === form.zona_id) || null;
+  const cpSinZona = form.cp.trim() !== "" && !zonaSel;
 
   const puedeGuardar =
     form.sucursal_id &&
@@ -266,18 +274,27 @@ export default function NuevoPedido() {
           <label>Dirección de entrega</label>
           <input value={form.direccion_entrega} onChange={(e) => set("direccion_entrega", e.target.value)} />
         </div>
-        {zonas.length > 0 && (
+        {!esRetiro && (
           <div className="field">
-            <label>Zona</label>
-            <select value={form.zona_id} onChange={(e) => elegirZona(e.target.value)}>
-              <option value="">Sin zona</option>
-              {zonas.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.nombre}
-                  {z.pago_fletero != null ? ` — $${Number(z.pago_fletero).toLocaleString("es-AR")}` : ""}
-                </option>
-              ))}
-            </select>
+            <label>Código postal</label>
+            <input
+              value={form.cp}
+              onChange={(e) => elegirCp(e.target.value)}
+              placeholder="Buscar zona por CP"
+            />
+            {zonaSel && (
+              <p style={{ fontSize: "0.82rem", color: "var(--st-entregado)", margin: "6px 0 0" }}>
+                Zona: <b>{zonaSel.nombre}</b>
+                {zonaSel.pago_fletero != null
+                  ? ` — flete $${Number(zonaSel.pago_fletero).toLocaleString("es-AR")}`
+                  : " — sin tarifa cargada"}
+              </p>
+            )}
+            {cpSinZona && (
+              <p style={{ fontSize: "0.82rem", color: "var(--st-camino)", margin: "6px 0 0" }}>
+                No hay zona con ese CP en esta sucursal. Cargá el flete a mano o creá la zona.
+              </p>
+            )}
           </div>
         )}
 

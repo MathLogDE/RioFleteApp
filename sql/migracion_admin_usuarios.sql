@@ -91,9 +91,18 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_rol text;
 begin
   if mi_rol() <> 'admin' then
     raise exception 'Solo un administrador puede asignar sucursales.';
+  end if;
+  -- encargado/operador se scopean por usuario_sucursales: sin ninguna quedan
+  -- sin acceso a datos, así que exigimos al menos una.
+  select rol into v_rol from perfiles where id = p_perfil_id;
+  if v_rol in ('encargado', 'operador')
+     and coalesce(array_length(p_sucursal_ids, 1), 0) = 0 then
+    raise exception 'Un % necesita al menos una sucursal asignada.', v_rol;
   end if;
   delete from usuario_sucursales where usuario_id = p_perfil_id;
   if p_sucursal_ids is not null and array_length(p_sucursal_ids, 1) > 0 then

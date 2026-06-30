@@ -14,7 +14,7 @@ export default function ZonasPanel() {
   const [zonas, setZonas] = useState([]);
   const [estado, setEstado] = useState("cargando");
   const [errorMsg, setErrorMsg] = useState("");
-  const [nueva, setNueva] = useState({ nombre: "", pago_fletero: "" });
+  const [nueva, setNueva] = useState({ nombre: "", cp: "", pago_fletero: "" });
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function ZonasPanel() {
     setErrorMsg("");
     const { data, error } = await supabase
       .from("zonas")
-      .select("id, nombre, pago_fletero, activa")
+      .select("id, nombre, cp, pago_fletero, activa")
       .eq("sucursal_id", sucursalSel)
       .order("nombre");
     if (error) {
@@ -69,13 +69,18 @@ export default function ZonasPanel() {
       .from("zonas")
       .update({
         nombre: z.nombre.trim(),
+        cp: z.cp && z.cp.trim() ? z.cp.trim().toUpperCase() : null,
         pago_fletero:
           z.pago_fletero === "" || z.pago_fletero == null ? null : Number(z.pago_fletero),
         activa: z.activa
       })
       .eq("id", z.id);
     if (error) {
-      setErrorMsg("No se pudo guardar la zona. " + error.message);
+      setErrorMsg(
+        error.message.includes("zonas_sucursal_cp_uniq") || error.message.includes("duplicate")
+          ? "Ese CP ya está asignado a otra zona de esta sucursal."
+          : "No se pudo guardar la zona. " + error.message
+      );
       return;
     }
     cargarZonas();
@@ -104,19 +109,23 @@ export default function ZonasPanel() {
     const { error } = await supabase.from("zonas").insert({
       sucursal_id: sucursalSel,
       nombre: nueva.nombre.trim(),
+      cp: nueva.cp.trim() ? nueva.cp.trim().toUpperCase() : null,
       pago_fletero: nueva.pago_fletero === "" ? null : Number(nueva.pago_fletero),
       activa: true
     });
     setGuardando(false);
     if (error) {
+      const dup = error.message.includes("duplicate") || error.message.includes("unique");
       setErrorMsg(
-        error.message.includes("duplicate") || error.message.includes("unique")
+        error.message.includes("zonas_sucursal_cp_uniq")
+          ? "Ese CP ya está asignado a otra zona de esta sucursal."
+          : dup
           ? "Ya existe una zona con ese nombre en esta sucursal."
           : "No se pudo crear la zona. " + error.message
       );
       return;
     }
-    setNueva({ nombre: "", pago_fletero: "" });
+    setNueva({ nombre: "", cp: "", pago_fletero: "" });
     cargarZonas();
   }
 
@@ -177,6 +186,12 @@ export default function ZonasPanel() {
                         placeholder="Nombre de la zona"
                       />
                       <input
+                        className="input" style={{ flex: "0 0 92px" }}
+                        value={z.cp ?? ""}
+                        onChange={(e) => editarCampo(z.id, "cp", e.target.value)}
+                        placeholder="CP"
+                      />
+                      <input
                         className="input" style={{ flex: "0 0 120px" }}
                         inputMode="numeric"
                         value={z.pago_fletero ?? ""}
@@ -216,6 +231,12 @@ export default function ZonasPanel() {
                 value={nueva.nombre}
                 onChange={(e) => setNueva((n) => ({ ...n, nombre: e.target.value }))}
                 placeholder="Nombre (ej. Centro, Zona Norte)"
+              />
+              <input
+                className="input" style={{ flex: "0 0 92px" }}
+                value={nueva.cp}
+                onChange={(e) => setNueva((n) => ({ ...n, cp: e.target.value }))}
+                placeholder="CP"
               />
               <input
                 className="input" style={{ flex: "0 0 120px" }}

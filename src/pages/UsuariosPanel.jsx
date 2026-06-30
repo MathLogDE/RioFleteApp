@@ -18,6 +18,12 @@ const ESTADO_TXT = {
   rechazado: "Rechazado"
 };
 
+// Roles cuyo acceso a datos se limita por usuario_sucursales: necesitan al
+// menos una sucursal o quedan sin ver nada. (gerencia/admin ven todo y el
+// fletero se scopea por fletero_id, así que para ellos las sucursales no
+// restringen el acceso.)
+const ROLES_POR_SUCURSAL = ["encargado", "operador"];
+
 // Compara dos listas de ids sin importar el orden.
 const mismaSeleccion = (a, b) =>
   a.length === b.length && [...a].sort().join() === [...b].sort().join();
@@ -85,6 +91,14 @@ export default function UsuariosPanel() {
   }
 
   async function guardarSucursales(u) {
+    // Un encargado/operador sin sucursales queda sin acceso a ningún dato.
+    if (ROLES_POR_SUCURSAL.includes(u.rol) && u._suc.length === 0) {
+      setErrorMsg(
+        `Un ${u.rol} necesita al menos una sucursal: sin ninguna no vería ningún pedido. ` +
+          "Marcá la(s) que le corresponda(n)."
+      );
+      return;
+    }
     setProcesando(u.id);
     setErrorMsg("");
     const { error } = await supabase.rpc("admin_set_sucursales", {
@@ -195,6 +209,11 @@ export default function UsuariosPanel() {
               {/* Sucursales */}
               <div style={{ marginTop: 12 }}>
                 <label style={{ fontSize: "0.78rem", color: "var(--muted)" }}>Sucursales</label>
+                <p style={{ fontSize: "0.76rem", color: "var(--muted)", margin: "2px 0 0" }}>
+                  {ROLES_POR_SUCURSAL.includes(u.rol)
+                    ? "Necesita al menos una; si no, no ve ningún pedido."
+                    : "Para este rol no limitan el acceso a los datos."}
+                </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
                   {sucursales.map((s) => {
                     const marcada = u._suc.includes(s.id);
