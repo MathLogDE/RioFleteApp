@@ -116,7 +116,10 @@ export default function SucursalPanel() {
     <div className="app-shell">
       <Topbar>
         {rol === "admin" && (
-          <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
+          <>
+            <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
+            <button className="linklike" onClick={() => navigate("/admin/usuarios")}>Usuarios</button>
+          </>
         )}
         <button className="linklike" onClick={() => navigate("/sucursal/nuevo")}>+ Pedido</button>
       </Topbar>
