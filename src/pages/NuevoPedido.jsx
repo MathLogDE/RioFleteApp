@@ -2,15 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
-
-// Normaliza un número argentino para wa.me: 54 + 9 + característica (sin 0)
-// + número (sin 15). Si ya viene en formato internacional (empieza con 54),
-// lo respeta. Devuelve "" si no hay número.
-const waNumero = (n) => {
-  const d = String(n || "").replace(/\D/g, "");
-  if (!d) return "";
-  return d.startsWith("54") ? d : "549" + d.replace(/^0/, "").replace(/^15/, "");
-};
+import { waNumero } from "../lib/whatsapp";
 
 // Etiqueta legible del método de entrega para el mensaje del mostrador.
 const etiquetaEntrega = (metodo, validacion) => {

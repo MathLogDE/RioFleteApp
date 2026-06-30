@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { subirEvidencia } from "../lib/archivos";
+import { abrirWhatsapp } from "../lib/whatsapp";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
 
@@ -149,7 +150,7 @@ export default function OperadorPanel() {
     (async () => {
       const [s, f] = await Promise.all([
         supabase.from("sucursales").select("id, codigo, nombre").eq("activa", true).order("codigo"),
-        supabase.from("perfiles").select("id, nombre_completo").eq("rol", "fletero").eq("activo", true)
+        supabase.from("perfiles").select("id, nombre_completo, telefono").eq("rol", "fletero").eq("activo", true)
       ]);
       if (s.data) {
         setSucursales(s.data);
@@ -234,6 +235,27 @@ export default function OperadorPanel() {
       return;
     }
     cargar();
+  }
+
+  const fletById = (id) => fleteros.find((f) => f.id === id) || null;
+
+  // Mensaje de WhatsApp para avisarle al fletero el reparto asignado.
+  function mensajeFletero(p) {
+    const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
+    const lineas = [
+      esReversa
+        ? `Nuevo retiro asignado (${p.tipo === "cambio" ? "cambio" : "devolución"})`
+        : "Nuevo reparto asignado",
+      `Pedido #${p.numero_pedido || String(p.id).slice(0, 8)} - ${p.cliente_nombre}`,
+      `Dirección: ${p.direccion_entrega}`
+    ];
+    if (p.monto_a_cobrar != null) lineas.push(`Cobrar al cliente: ${peso(p.monto_a_cobrar)}`);
+    return lineas.join("\n");
+  }
+
+  function avisarFletero(p) {
+    const f = fletById(p.fletero_id);
+    if (f) abrirWhatsapp(f.telefono, mensajeFletero(p));
   }
 
   const porRecibir = pedidos.filter((p) => p.estado_actual === "enviado");
@@ -343,6 +365,21 @@ export default function OperadorPanel() {
                       {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
                     </select>
                   </div>
+                  {p.fletero_id && (
+                    fletById(p.fletero_id)?.telefono ? (
+                      <button
+                        className="btn btn-ghost"
+                        style={{ marginTop: 10, minHeight: 0, padding: "10px 14px" }}
+                        onClick={() => avisarFletero(p)}
+                      >
+                        Avisar al fletero por WhatsApp
+                      </button>
+                    ) : (
+                      <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: "8px 0 0" }}>
+                        El fletero no tiene teléfono cargado para avisarle.
+                      </p>
+                    )
+                  )}
                 </div>
               );
             })}
