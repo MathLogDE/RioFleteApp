@@ -2,26 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
-
-const inputStyle = {
-  width: "100%",
-  padding: 13,
-  fontSize: "1.02rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  boxSizing: "border-box"
-};
-
-// Normaliza un número argentino para wa.me: 54 + 9 + característica (sin 0)
-// + número (sin 15). Si ya viene en formato internacional (empieza con 54),
-// lo respeta. Devuelve "" si no hay número.
-const waNumero = (n) => {
-  const d = String(n || "").replace(/\D/g, "");
-  if (!d) return "";
-  return d.startsWith("54") ? d : "549" + d.replace(/^0/, "").replace(/^15/, "");
-};
+import { waNumero } from "../lib/whatsapp";
 
 // Etiqueta legible del método de entrega para el mensaje del mostrador.
 const etiquetaEntrega = (metodo, validacion) => {
@@ -45,6 +26,7 @@ export default function NuevoPedido() {
     cliente_documento: "",
     cliente_telefono: "",
     direccion_entrega: "",
+    cp: "",
     zona_id: "",
     metodo_entrega: "flete",
     metodo_pago: "tarjeta",
@@ -94,7 +76,7 @@ export default function NuevoPedido() {
     (async () => {
       const { data } = await supabase
         .from("zonas")
-        .select("id, nombre, pago_fletero")
+        .select("id, nombre, cp, pago_fletero")
         .eq("sucursal_id", form.sucursal_id)
         .eq("activa", true)
         .order("nombre");
@@ -103,18 +85,21 @@ export default function NuevoPedido() {
     return () => { cancelado = true; };
   }, [form.sucursal_id]);
 
-  // Al cambiar de sucursal, la zona anterior ya no aplica: la limpiamos.
+  // Al cambiar de sucursal, el CP/zona anterior ya no aplica: lo limpiamos.
   function elegirSucursal(id) {
-    setForm((f) => ({ ...f, sucursal_id: id, zona_id: "" }));
+    setForm((f) => ({ ...f, sucursal_id: id, cp: "", zona_id: "" }));
   }
 
-  // Al elegir zona, autocompletamos la tarifa (pago al fletero) si la zona
-  // tiene una cargada. Queda editable por si hay una excepción.
-  function elegirZona(zonaId) {
-    const z = zonas.find((x) => x.id === zonaId);
+  // Al tipear el CP, buscamos la zona de esta sucursal con ese CP. Si la
+  // encontramos, fijamos la zona y autocompletamos la tarifa (pago al fletero).
+  // La tarifa queda editable por si hay una excepción.
+  function elegirCp(cpRaw) {
+    const clave = cpRaw.trim().toUpperCase();
+    const z = clave ? zonas.find((x) => (x.cp || "").trim().toUpperCase() === clave) : null;
     setForm((f) => ({
       ...f,
-      zona_id: zonaId,
+      cp: cpRaw,
+      zona_id: z ? z.id : "",
       pago_fletero: z && z.pago_fletero != null ? String(z.pago_fletero) : f.pago_fletero
     }));
   }
@@ -129,6 +114,10 @@ export default function NuevoPedido() {
   const esFlete = form.metodo_entrega === "flete";
   const esRetiro = form.metodo_entrega === "sucursal";
   const esContraEntrega = form.metodo_pago === "contra_entrega";
+
+  // Zona resuelta a partir del CP tipeado (para mostrar nombre/tarifa).
+  const zonaSel = zonas.find((z) => z.id === form.zona_id) || null;
+  const cpSinZona = form.cp.trim() !== "" && !zonaSel;
 
   const puedeGuardar =
     form.sucursal_id &&
@@ -187,7 +176,9 @@ export default function NuevoPedido() {
           : null,
       notas: form.notas.trim() || null,
       fletero_id: null,
-      estado_actual: "recibido"
+      // Nace "sin recibir": queda en "Por recibir" del mostrador, que lo marca
+      // como recibido en sucursal antes de poder asignarlo a un fletero.
+      estado_actual: "enviado"
     };
 
     const { data, error: e1 } = await supabase
@@ -248,7 +239,7 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>Sucursal</label>
-          <select style={inputStyle} value={form.sucursal_id} onChange={(e) => elegirSucursal(e.target.value)}>
+          <select value={form.sucursal_id} onChange={(e) => elegirSucursal(e.target.value)}>
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>
             ))}
@@ -257,45 +248,54 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>N° de pedido</label>
-          <input style={inputStyle} value={form.numero_pedido} onChange={(e) => set("numero_pedido", e.target.value)} placeholder="Opcional" />
+          <input value={form.numero_pedido} onChange={(e) => set("numero_pedido", e.target.value)} placeholder="Opcional" />
         </div>
 
         <p className="section-label" style={{ marginTop: 8 }}>Cliente</p>
         <div className="field">
           <label>Nombre o razón social</label>
-          <input style={inputStyle} value={form.cliente_nombre} onChange={(e) => set("cliente_nombre", e.target.value)} />
+          <input value={form.cliente_nombre} onChange={(e) => set("cliente_nombre", e.target.value)} />
         </div>
         <div className="field">
           <label>Documento</label>
-          <input style={inputStyle} value={form.cliente_documento} onChange={(e) => set("cliente_documento", e.target.value)} />
+          <input value={form.cliente_documento} onChange={(e) => set("cliente_documento", e.target.value)} />
         </div>
         <div className="field">
           <label>Teléfono</label>
-          <input style={inputStyle} inputMode="tel" value={form.cliente_telefono} onChange={(e) => set("cliente_telefono", e.target.value)} />
+          <input inputMode="tel" value={form.cliente_telefono} onChange={(e) => set("cliente_telefono", e.target.value)} />
         </div>
         <div className="field">
           <label>Dirección de entrega</label>
-          <input style={inputStyle} value={form.direccion_entrega} onChange={(e) => set("direccion_entrega", e.target.value)} />
+          <input value={form.direccion_entrega} onChange={(e) => set("direccion_entrega", e.target.value)} />
         </div>
-        {zonas.length > 0 && (
+        {!esRetiro && (
           <div className="field">
-            <label>Zona</label>
-            <select style={inputStyle} value={form.zona_id} onChange={(e) => elegirZona(e.target.value)}>
-              <option value="">Sin zona</option>
-              {zonas.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.nombre}
-                  {z.pago_fletero != null ? ` — $${Number(z.pago_fletero).toLocaleString("es-AR")}` : ""}
-                </option>
-              ))}
-            </select>
+            <label>Código postal</label>
+            <input
+              value={form.cp}
+              onChange={(e) => elegirCp(e.target.value)}
+              placeholder="Buscar zona por CP"
+            />
+            {zonaSel && (
+              <p style={{ fontSize: "0.82rem", color: "var(--st-entregado)", margin: "6px 0 0" }}>
+                Zona: <b>{zonaSel.nombre}</b>
+                {zonaSel.pago_fletero != null
+                  ? ` — flete $${Number(zonaSel.pago_fletero).toLocaleString("es-AR")}`
+                  : " — sin tarifa cargada"}
+              </p>
+            )}
+            {cpSinZona && (
+              <p style={{ fontSize: "0.82rem", color: "var(--st-camino)", margin: "6px 0 0" }}>
+                No hay zona con ese CP en esta sucursal. Cargá el flete a mano o creá la zona.
+              </p>
+            )}
           </div>
         )}
 
         <p className="section-label" style={{ marginTop: 8 }}>Entrega y pago</p>
         <div className="field">
           <label>Método de entrega</label>
-          <select style={inputStyle} value={form.metodo_entrega} onChange={(e) => set("metodo_entrega", e.target.value)}>
+          <select value={form.metodo_entrega} onChange={(e) => set("metodo_entrega", e.target.value)}>
             <option value="flete">Flete (domicilio)</option>
             <option value="sucursal">Retiro en sucursal</option>
             <option value="courier">Courier</option>
@@ -304,7 +304,7 @@ export default function NuevoPedido() {
         {esFlete && (
           <div className="field">
             <label>Dónde se valida</label>
-            <select style={inputStyle} value={form.validacion_lugar} onChange={(e) => set("validacion_lugar", e.target.value)}>
+            <select value={form.validacion_lugar} onChange={(e) => set("validacion_lugar", e.target.value)}>
               <option value="en_entrega">El fletero valida en la entrega</option>
               <option value="en_sucursal">El cliente valida en la sucursal</option>
             </select>
@@ -312,7 +312,7 @@ export default function NuevoPedido() {
         )}
         <div className="field">
           <label>Método de pago</label>
-          <select style={inputStyle} value={form.metodo_pago} onChange={(e) => set("metodo_pago", e.target.value)}>
+          <select value={form.metodo_pago} onChange={(e) => set("metodo_pago", e.target.value)}>
             <option value="tarjeta">Tarjeta</option>
             <option value="transferencia">Transferencia</option>
             <option value="mercadopago">Mercado Pago</option>
@@ -322,19 +322,19 @@ export default function NuevoPedido() {
         {esTarjeta && (
           <div className="field">
             <label>Últimos 4 de la tarjeta</label>
-            <input style={inputStyle} inputMode="numeric" maxLength={4} value={form.tarjeta_ultimos4}
+            <input inputMode="numeric" maxLength={4} value={form.tarjeta_ultimos4}
               onChange={(e) => set("tarjeta_ultimos4", e.target.value.replace(/\D/g, "").slice(0, 4))}
               placeholder="Para validar en la entrega" />
           </div>
         )}
         <div className="field">
           <label>Total de la venta</label>
-          <input style={inputStyle} inputMode="numeric" value={form.monto} onChange={(e) => set("monto", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
+          <input inputMode="numeric" value={form.monto} onChange={(e) => set("monto", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
         </div>
         {!esRetiro && (
           <div className="field">
             <label>Precio del flete (pago al fletero)</label>
-            <input style={inputStyle} inputMode="numeric" value={form.pago_fletero} onChange={(e) => set("pago_fletero", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$ — lo que cobra el fletero por la entrega" />
+            <input inputMode="numeric" value={form.pago_fletero} onChange={(e) => set("pago_fletero", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$ — lo que cobra el fletero por la entrega" />
             {form.zona_id && (
               <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: "6px 0 0" }}>
                 Se completó con la tarifa de la zona. Podés cambiarlo para una excepción.
@@ -345,16 +345,16 @@ export default function NuevoPedido() {
         {esContraEntrega && (
           <div className="field">
             <label>Monto a cobrar al cliente</label>
-            <input style={inputStyle} inputMode="numeric" value={form.monto_a_cobrar} onChange={(e) => set("monto_a_cobrar", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
+            <input inputMode="numeric" value={form.monto_a_cobrar} onChange={(e) => set("monto_a_cobrar", e.target.value.replace(/[^\d.]/g, ""))} placeholder="$" />
           </div>
         )}
 
         <p className="section-label" style={{ marginTop: 8 }}>Artículos</p>
         {articulos.map((a, i) => (
           <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-            <input style={{ ...inputStyle, flex: "0 0 70px" }} placeholder="Cód." value={a.codigo} onChange={(e) => setArticulo(i, "codigo", e.target.value)} />
-            <input style={{ ...inputStyle, flex: 1 }} placeholder="Descripción" value={a.descripcion} onChange={(e) => setArticulo(i, "descripcion", e.target.value)} />
-            <input style={{ ...inputStyle, flex: "0 0 56px", textAlign: "center" }} inputMode="numeric" value={a.cantidad} onChange={(e) => setArticulo(i, "cantidad", e.target.value.replace(/\D/g, ""))} />
+            <input className="input" style={{ flex: "0 0 70px" }} placeholder="Cód." value={a.codigo} onChange={(e) => setArticulo(i, "codigo", e.target.value)} />
+            <input className="input" style={{ flex: 1 }} placeholder="Descripción" value={a.descripcion} onChange={(e) => setArticulo(i, "descripcion", e.target.value)} />
+            <input className="input" style={{ flex: "0 0 56px", textAlign: "center" }} inputMode="numeric" value={a.cantidad} onChange={(e) => setArticulo(i, "cantidad", e.target.value.replace(/\D/g, ""))} />
             {articulos.length > 1 && (
               <button onClick={() => quitarArticulo(i)} aria-label="Quitar"
                 style={{ flex: "0 0 auto", background: "none", border: "none", color: "var(--st-fallido)", fontSize: "1.4rem", cursor: "pointer", lineHeight: 1 }}>×</button>
@@ -365,7 +365,7 @@ export default function NuevoPedido() {
 
         <div className="field">
           <label>Notas</label>
-          <textarea style={{ ...inputStyle, minHeight: 70, resize: "vertical" }} value={form.notas} onChange={(e) => set("notas", e.target.value)} />
+          <textarea style={{ minHeight: 70, resize: "vertical" }} value={form.notas} onChange={(e) => set("notas", e.target.value)} />
         </div>
 
         <button className="btn btn-primary" disabled={!puedeGuardar} onClick={guardar}>

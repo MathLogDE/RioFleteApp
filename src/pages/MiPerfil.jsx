@@ -3,20 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { comprimirImagen } from "../lib/imagen";
+import { abrirArchivo } from "../lib/archivos";
 import Topbar from "../components/Topbar";
-
-const inputStyle = {
-  width: "100%",
-  padding: 13,
-  fontSize: "1.02rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 12,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  boxSizing: "border-box"
-};
-
-const readonlyStyle = { ...inputStyle, background: "var(--chip-bg)", color: "var(--muted)" };
 
 const IVA = [
   { v: "monotributo", t: "Monotributo" },
@@ -66,8 +54,11 @@ function SubirDoc({ uid, label, columna, accept, esImagen, urlActual, onCambio }
   }
 
   async function ver() {
-    const { data } = await supabase.storage.from("perfiles").createSignedUrl(urlActual, 60);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+    try {
+      await abrirArchivo("perfiles", urlActual);
+    } catch {
+      /* el archivo puede no existir todavía; no rompemos la UI */
+    }
   }
 
   return (
@@ -179,20 +170,20 @@ export default function MiPerfil() {
           <>
             <div className="field">
               <label>Email</label>
-              <input style={readonlyStyle} value={p.email || ""} disabled />
+              <input value={p.email || ""} disabled />
             </div>
             <div className="field">
               <label>DNI</label>
-              <input style={readonlyStyle} value={p.documento || ""} disabled />
+              <input value={p.documento || ""} disabled />
             </div>
 
             <div className="field">
               <label>Nombre completo</label>
-              <input style={inputStyle} value={p.nombre_completo || ""} onChange={(e) => set("nombre_completo", e.target.value)} />
+              <input value={p.nombre_completo || ""} onChange={(e) => set("nombre_completo", e.target.value)} />
             </div>
             <div className="field">
               <label>Celular</label>
-              <input style={inputStyle} inputMode="tel" value={p.telefono || ""} onChange={(e) => set("telefono", e.target.value)} />
+              <input inputMode="tel" value={p.telefono || ""} onChange={(e) => set("telefono", e.target.value)} />
             </div>
 
             {esFletero && (
@@ -200,22 +191,22 @@ export default function MiPerfil() {
                 <p className="section-label" style={{ marginTop: 8 }}>Datos de facturación</p>
                 <div className="field">
                   <label>CUIT</label>
-                  <input style={inputStyle} inputMode="numeric" value={p.cuit || ""} onChange={(e) => set("cuit", e.target.value)} />
+                  <input inputMode="numeric" value={p.cuit || ""} onChange={(e) => set("cuit", e.target.value)} />
                 </div>
                 <div className="field">
                   <label>Condición frente al IVA</label>
-                  <select style={inputStyle} value={p.condicion_iva || ""} onChange={(e) => set("condicion_iva", e.target.value)}>
+                  <select value={p.condicion_iva || ""} onChange={(e) => set("condicion_iva", e.target.value)}>
                     <option value="">—</option>
                     {IVA.map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
                   </select>
                 </div>
                 <div className="field">
                   <label>Razón social</label>
-                  <input style={inputStyle} value={p.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} />
+                  <input value={p.razon_social || ""} onChange={(e) => set("razon_social", e.target.value)} />
                 </div>
                 <div className="field">
                   <label>CBU o alias</label>
-                  <input style={inputStyle} value={p.cbu_alias || ""} onChange={(e) => set("cbu_alias", e.target.value)} />
+                  <input value={p.cbu_alias || ""} onChange={(e) => set("cbu_alias", e.target.value)} />
                 </div>
               </>
             )}

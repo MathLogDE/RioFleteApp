@@ -2,28 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
-
-const peso = (n) => "$ " + Number(n || 0).toLocaleString("es-AR");
-
-const inputStyle = {
-  width: "100%",
-  padding: 11,
-  fontSize: "1rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)",
-  boxSizing: "border-box"
-};
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
+import { peso } from "../lib/formato";
 
 const soloNum = (v) => v.replace(/[^\d.]/g, "");
 
@@ -35,7 +14,7 @@ export default function ZonasPanel() {
   const [zonas, setZonas] = useState([]);
   const [estado, setEstado] = useState("cargando");
   const [errorMsg, setErrorMsg] = useState("");
-  const [nueva, setNueva] = useState({ nombre: "", pago_fletero: "" });
+  const [nueva, setNueva] = useState({ nombre: "", cp: "", pago_fletero: "" });
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
@@ -58,7 +37,7 @@ export default function ZonasPanel() {
     setErrorMsg("");
     const { data, error } = await supabase
       .from("zonas")
-      .select("id, nombre, pago_fletero, activa")
+      .select("id, nombre, cp, pago_fletero, activa")
       .eq("sucursal_id", sucursalSel)
       .order("nombre");
     if (error) {
@@ -90,13 +69,18 @@ export default function ZonasPanel() {
       .from("zonas")
       .update({
         nombre: z.nombre.trim(),
+        cp: z.cp && z.cp.trim() ? z.cp.trim().toUpperCase() : null,
         pago_fletero:
           z.pago_fletero === "" || z.pago_fletero == null ? null : Number(z.pago_fletero),
         activa: z.activa
       })
       .eq("id", z.id);
     if (error) {
-      setErrorMsg("No se pudo guardar la zona. " + error.message);
+      setErrorMsg(
+        error.message.includes("zonas_sucursal_cp_uniq") || error.message.includes("duplicate")
+          ? "Ese CP ya está asignado a otra zona de esta sucursal."
+          : "No se pudo guardar la zona. " + error.message
+      );
       return;
     }
     cargarZonas();
@@ -125,24 +109,28 @@ export default function ZonasPanel() {
     const { error } = await supabase.from("zonas").insert({
       sucursal_id: sucursalSel,
       nombre: nueva.nombre.trim(),
+      cp: nueva.cp.trim() ? nueva.cp.trim().toUpperCase() : null,
       pago_fletero: nueva.pago_fletero === "" ? null : Number(nueva.pago_fletero),
       activa: true
     });
     setGuardando(false);
     if (error) {
+      const dup = error.message.includes("duplicate") || error.message.includes("unique");
       setErrorMsg(
-        error.message.includes("duplicate") || error.message.includes("unique")
+        error.message.includes("zonas_sucursal_cp_uniq")
+          ? "Ese CP ya está asignado a otra zona de esta sucursal."
+          : dup
           ? "Ya existe una zona con ese nombre en esta sucursal."
           : "No se pudo crear la zona. " + error.message
       );
       return;
     }
-    setNueva({ nombre: "", pago_fletero: "" });
+    setNueva({ nombre: "", cp: "", pago_fletero: "" });
     cargarZonas();
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         <button className="linklike" onClick={() => navigate("/gerencia")}>← Resumen</button>
       </Topbar>
@@ -156,7 +144,7 @@ export default function ZonasPanel() {
 
         <div className="field">
           <label>Sucursal</label>
-          <select style={{ ...selStyle, width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+          <select className="select-sm" style={{ width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>
             ))}
@@ -178,7 +166,7 @@ export default function ZonasPanel() {
                 Esta sucursal todavía no tiene zonas. Agregá la primera abajo.
               </p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+              <div className="grid-cards" style={{ marginTop: 4 }}>
                 {zonas.map((z) => (
                   <div
                     key={z.id}
@@ -192,13 +180,19 @@ export default function ZonasPanel() {
                   >
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <input
-                        style={{ ...inputStyle, flex: 1 }}
+                        className="input" style={{ flex: 1 }}
                         value={z.nombre}
                         onChange={(e) => editarCampo(z.id, "nombre", e.target.value)}
                         placeholder="Nombre de la zona"
                       />
                       <input
-                        style={{ ...inputStyle, flex: "0 0 120px" }}
+                        className="input" style={{ flex: "0 0 92px" }}
+                        value={z.cp ?? ""}
+                        onChange={(e) => editarCampo(z.id, "cp", e.target.value)}
+                        placeholder="CP"
+                      />
+                      <input
+                        className="input" style={{ flex: "0 0 120px" }}
                         inputMode="numeric"
                         value={z.pago_fletero ?? ""}
                         onChange={(e) => editarCampo(z.id, "pago_fletero", soloNum(e.target.value))}
@@ -233,13 +227,19 @@ export default function ZonasPanel() {
             <p className="section-label" style={{ marginTop: 22 }}>Nueva zona</p>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                className="input" style={{ flex: 1 }}
                 value={nueva.nombre}
                 onChange={(e) => setNueva((n) => ({ ...n, nombre: e.target.value }))}
                 placeholder="Nombre (ej. Centro, Zona Norte)"
               />
               <input
-                style={{ ...inputStyle, flex: "0 0 120px" }}
+                className="input" style={{ flex: "0 0 92px" }}
+                value={nueva.cp}
+                onChange={(e) => setNueva((n) => ({ ...n, cp: e.target.value }))}
+                placeholder="CP"
+              />
+              <input
+                className="input" style={{ flex: "0 0 120px" }}
                 inputMode="numeric"
                 value={nueva.pago_fletero}
                 onChange={(e) => setNueva((n) => ({ ...n, pago_fletero: soloNum(e.target.value) }))}

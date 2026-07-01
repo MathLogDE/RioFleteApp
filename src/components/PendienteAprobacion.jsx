@@ -4,6 +4,7 @@ import Logo from "./Logo";
 export default function PendienteAprobacion() {
   const { perfil, estado, signOut } = useAuth();
   const rechazado = estado === "rechazado";
+  const suspendido = estado === "suspendido";
 
   return (
     <div className="center-screen">
@@ -12,7 +13,15 @@ export default function PendienteAprobacion() {
           <Logo height={52} />
         </div>
 
-        {rechazado ? (
+        {suspendido ? (
+          <>
+            <h2 style={{ fontSize: "1.25rem", margin: "0 0 8px" }}>Cuenta deshabilitada</h2>
+            <p style={{ color: "var(--ink-soft)", marginTop: 0 }}>
+              Tu cuenta fue dada de baja. Si creés que es un error, comunicate con
+              el responsable de tu sucursal para que la reactive.
+            </p>
+          </>
+        ) : rechazado ? (
           <>
             <h2 style={{ fontSize: "1.25rem", margin: "0 0 8px" }}>Alta no aprobada</h2>
             <p style={{ color: "var(--ink-soft)", marginTop: 0 }}>

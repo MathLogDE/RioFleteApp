@@ -1,19 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { comprimirImagen } from "../lib/imagen";
-import { obtenerUbicacion } from "../lib/geo";
+import { subirEvidencia } from "../lib/archivos";
+import { abrirWhatsapp } from "../lib/whatsapp";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
 
 const inputCorto = {
   padding: 11,
@@ -100,23 +91,12 @@ function SubirDni({ pedidoId }) {
     setEstado("subiendo");
     setMsg("");
     try {
-      const cuerpo = await comprimirImagen(file);
-      const ruta = `${pedidoId}/escaneo_documento_${Date.now()}.jpg`;
-      const { error: eUp } = await supabase.storage
-        .from("evidencias")
-        .upload(ruta, cuerpo, { contentType: "image/jpeg" });
-      if (eUp) throw eUp;
-
-      const { lat, lng } = await obtenerUbicacion();
-      const { error: eIns } = await supabase.from("evidencias").insert({
-        pedido_id: pedidoId,
+      await subirEvidencia({
+        pedidoId,
         tipo: "escaneo_documento",
-        archivo_url: ruta,
-        documento_coincide: coincide,
-        lat,
-        lng
+        file,
+        documentoCoincide: coincide
       });
-      if (eIns) throw eIns;
       setEstado("ok");
     } catch (err) {
       setEstado("error");
@@ -170,7 +150,7 @@ export default function OperadorPanel() {
     (async () => {
       const [s, f] = await Promise.all([
         supabase.from("sucursales").select("id, codigo, nombre").eq("activa", true).order("codigo"),
-        supabase.from("perfiles").select("id, nombre_completo").eq("rol", "fletero").eq("activo", true)
+        supabase.from("perfiles").select("id, nombre_completo, telefono").eq("rol", "fletero").eq("activo", true)
       ]);
       if (s.data) {
         setSucursales(s.data);
@@ -257,6 +237,27 @@ export default function OperadorPanel() {
     cargar();
   }
 
+  const fletById = (id) => fleteros.find((f) => f.id === id) || null;
+
+  // Mensaje de WhatsApp para avisarle al fletero el reparto asignado.
+  function mensajeFletero(p) {
+    const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
+    const lineas = [
+      esReversa
+        ? `Nuevo retiro asignado (${p.tipo === "cambio" ? "cambio" : "devolución"})`
+        : "Nuevo reparto asignado",
+      `Pedido #${p.numero_pedido || String(p.id).slice(0, 8)} - ${p.cliente_nombre}`,
+      `Dirección: ${p.direccion_entrega}`
+    ];
+    if (p.monto_a_cobrar != null) lineas.push(`Cobrar al cliente: ${peso(p.monto_a_cobrar)}`);
+    return lineas.join("\n");
+  }
+
+  function avisarFletero(p) {
+    const f = fletById(p.fletero_id);
+    if (f) abrirWhatsapp(f.telefono, mensajeFletero(p));
+  }
+
   const porRecibir = pedidos.filter((p) => p.estado_actual === "enviado");
 
   // Pedidos que el operador puede asignar a un fletero:
@@ -285,13 +286,13 @@ export default function OperadorPanel() {
   );
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar />
 
       <main className="content">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
           {sucursales.length > 1 ? (
-            <select style={selStyle} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+            <select className="select-sm" value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
               {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
             </select>
           ) : (
@@ -313,6 +314,7 @@ export default function OperadorPanel() {
 
             <p className="section-label">Por recibir — en distribución</p>
             {porRecibir.length === 0 && <SeccionVacia>Nada llegando por ahora.</SeccionVacia>}
+            <div className="grid-cards">
             {porRecibir.map((p) => (
               <div className="card" key={p.id} style={{ cursor: "default" }}>
                 <div className="card-top">
@@ -325,9 +327,11 @@ export default function OperadorPanel() {
                 </button>
               </div>
             ))}
+            </div>
 
             <p className="section-label" style={{ marginTop: 22 }}>Asignar fletero</p>
             {asignables.length === 0 && <SeccionVacia>No hay pedidos para asignar.</SeccionVacia>}
+            <div className="grid-cards">
             {asignables.map((p) => {
               const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
               return (
@@ -352,7 +356,8 @@ export default function OperadorPanel() {
                   <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Fletero:</span>
                     <select
-                      style={{ ...selStyle, flex: 1 }}
+                      className="select-sm"
+                      style={{ flex: 1 }}
                       value={p.fletero_id || ""}
                       onChange={(e) => asignarFletero(p, e.target.value)}
                     >
@@ -360,12 +365,29 @@ export default function OperadorPanel() {
                       {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
                     </select>
                   </div>
+                  {p.fletero_id && (
+                    fletById(p.fletero_id)?.telefono ? (
+                      <button
+                        className="btn btn-ghost"
+                        style={{ marginTop: 10, minHeight: 0, padding: "10px 14px" }}
+                        onClick={() => avisarFletero(p)}
+                      >
+                        Avisar al fletero por WhatsApp
+                      </button>
+                    ) : (
+                      <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: "8px 0 0" }}>
+                        El fletero no tiene teléfono cargado para avisarle.
+                      </p>
+                    )
+                  )}
                 </div>
               );
             })}
+            </div>
 
             <p className="section-label" style={{ marginTop: 22 }}>Validar para el fletero</p>
             {validarFlete.length === 0 && <SeccionVacia>Sin pedidos de flete para validar.</SeccionVacia>}
+            <div className="grid-cards">
             {validarFlete.map((p) => (
               <div className="card" key={p.id} style={{ cursor: "default" }}>
                 <div className="card-top">
@@ -378,9 +400,11 @@ export default function OperadorPanel() {
                 <ValidarTarjeta pedidoId={p.id} onValidado={cargar} />
               </div>
             ))}
+            </div>
 
             <p className="section-label" style={{ marginTop: 22 }}>Entregar en mostrador</p>
             {mostrador.length === 0 && <SeccionVacia>Sin retiros pendientes.</SeccionVacia>}
+            <div className="grid-cards">
             {mostrador.map((p) => {
               const requiereValidar = p.metodo_pago === "tarjeta" && p.pago_validado !== true;
               return (
@@ -405,6 +429,7 @@ export default function OperadorPanel() {
                 </div>
               );
             })}
+            </div>
           </>
         )}
       </main>

@@ -5,15 +5,6 @@ import { useAuth } from "../context/AuthContext";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
 
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
-
 export default function SucursalPanel() {
   const navigate = useNavigate();
   const { rol } = useAuth();
@@ -122,10 +113,13 @@ export default function SucursalPanel() {
   const nombreFletero = (id) => fleteros.find((f) => f.id === id)?.nombre_completo;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         {rol === "admin" && (
-          <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
+          <>
+            <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
+            <button className="linklike" onClick={() => navigate("/admin/usuarios")}>Usuarios</button>
+          </>
         )}
         <button className="linklike" onClick={() => navigate("/sucursal/nuevo")}>+ Pedido</button>
       </Topbar>
@@ -133,7 +127,7 @@ export default function SucursalPanel() {
       <main className="content">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
           {sucursales.length > 1 ? (
-            <select style={selStyle} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+            <select className="select-sm" value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
               {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
             </select>
           ) : (
@@ -161,7 +155,9 @@ export default function SucursalPanel() {
           </div>
         )}
 
-        {estado === "ok" && pedidos.map((p) => {
+        {estado === "ok" && pedidos.length > 0 && (
+        <div className="grid-cards">
+        {pedidos.map((p) => {
           const esFlete = p.metodo_entrega === "flete";
           const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
           const puedeGenerarReversa =
@@ -213,7 +209,8 @@ export default function SucursalPanel() {
               {puedeGenerarReversa && reversaFor === p.id && (
                 <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
                   <input
-                    style={{ ...selStyle, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
+                    className="select-sm"
+                    style={{ width: "100%", boxSizing: "border-box", marginBottom: 10 }}
                     placeholder="Motivo (opcional)"
                     value={reversaNota}
                     onChange={(e) => setReversaNota(e.target.value)}
@@ -237,6 +234,8 @@ export default function SucursalPanel() {
             </div>
           );
         })}
+        </div>
+        )}
       </main>
     </div>
   );
