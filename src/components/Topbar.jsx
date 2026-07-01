@@ -1,4 +1,5 @@
 import Logo from "./Logo";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 export default function Topbar({ children }) {
   const { tema, toggle } = useTheme();
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   return (
     <header className="topbar">
       <Logo variant="blanco" height={26} />
@@ -30,6 +32,17 @@ export default function Topbar({ children }) {
           )}
         </button>
         {children}
+        <button
+          className="theme-toggle"
+          onClick={() => navigate("/perfil")}
+          aria-label="Mi perfil"
+          title="Mi perfil"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
         <button
           className="theme-toggle"
           onClick={signOut}

@@ -2,18 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Topbar from "../components/Topbar";
-
-const peso = (n) => "$ " + Number(n || 0).toLocaleString("es-AR");
-const miles = (n) => Number(n || 0).toLocaleString("es-AR");
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
+import { peso, miles } from "../lib/formato";
 
 function periodoDesde(p) {
   const now = new Date();
@@ -173,6 +162,7 @@ export default function DashboardGerencia() {
   return (
     <div className="app-shell">
       <Topbar>
+        <button className="linklike" onClick={() => navigate("/gerencia/zonas")}>Zonas</button>
         <button className="linklike" onClick={() => navigate("/gerencia/pagos")}>Pagos →</button>
       </Topbar>
 
@@ -180,13 +170,13 @@ export default function DashboardGerencia() {
         <h2 style={{ fontSize: "1.2rem", margin: "0 0 14px" }}>Resumen</h2>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          <select style={{ ...selStyle, flex: 1 }} value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+          <select className="select-sm" style={{ flex: 1 }} value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
             <option value="hoy">Hoy</option>
             <option value="7d">Últimos 7 días</option>
             <option value="mes">Este mes</option>
             <option value="todo">Todo</option>
           </select>
-          <select style={{ ...selStyle, flex: 1 }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+          <select className="select-sm" style={{ flex: 1 }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
             <option value="">Todas</option>
             {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
           </select>

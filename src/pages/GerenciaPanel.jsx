@@ -1,25 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../context/AuthContext";
 import Topbar from "../components/Topbar";
-
-const peso = (n) => "$ " + Number(n || 0).toLocaleString("es-AR");
-
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
+import { peso } from "../lib/formato";
+import { abrirArchivo } from "../lib/archivos";
 
 const fechaCorta = (iso) =>
   iso ? new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "";
 
 export default function GerenciaPanel() {
-  const { perfil } = useAuth();
   const navigate = useNavigate();
   const [sucursales, setSucursales] = useState([]);
   const [sucursalSel, setSucursalSel] = useState(""); // "" = todas
@@ -91,33 +80,27 @@ export default function GerenciaPanel() {
   }, [cargar]);
 
   async function verFactura(path) {
-    const { data, error } = await supabase.storage.from("evidencias").createSignedUrl(path, 60);
-    if (error) {
+    try {
+      await abrirArchivo("evidencias", path);
+    } catch (error) {
       setErrorMsg("No se pudo abrir la factura. " + error.message);
-      return;
     }
-    window.open(data.signedUrl, "_blank");
   }
 
   async function pagarLote(fleteroId, metodo) {
     setMetodoAbierto(null);
     setErrorMsg("");
-    let q = supabase
-      .from("pedidos")
-      .update({
-        estado_pago: "pagado",
-        pago_fletero_metodo: metodo,
-        pago_fletero_fecha: new Date().toISOString(),
-        pago_fletero_pagado_por: perfil?.id ?? null
-      })
-      .eq("estado_pago", "facturado")
-      .eq("fletero_id", fleteroId);
-    if (sucursalSel) q = q.eq("sucursal_id", sucursalSel);
-
-    const { error } = await q;
+    const { data, error } = await supabase.rpc("marcar_pago_fletero", {
+      p_fletero_id: fleteroId,
+      p_metodo: metodo,
+      p_sucursal_id: sucursalSel || null
+    });
     if (error) {
       setErrorMsg("No se pudo registrar el pago. " + error.message);
       return;
+    }
+    if (!data) {
+      setErrorMsg("No había fletes facturados para pagar (puede que ya estuvieran pagados).");
     }
     cargar();
   }
@@ -144,7 +127,7 @@ export default function GerenciaPanel() {
   );
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
         <button className="linklike" onClick={() => navigate("/gerencia")}>← Resumen</button>
       </Topbar>
@@ -156,7 +139,7 @@ export default function GerenciaPanel() {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <select style={{ ...selStyle, width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+          <select className="select-sm" style={{ width: "100%" }} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
             <option value="">Todas las sucursales</option>
             {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
           </select>
@@ -201,6 +184,8 @@ export default function GerenciaPanel() {
               </div>
             )}
 
+            {Object.keys(grupos).length > 0 && (
+            <div className="grid-cards">
             {Object.entries(grupos).map(([fleteroId, items]) => {
               const subtotal = items.reduce((a, p) => a + (Number(p.pago_fletero) || 0), 0);
               return (
@@ -252,6 +237,8 @@ export default function GerenciaPanel() {
                 </div>
               );
             })}
+            </div>
+            )}
           </>
         )}
       </main>

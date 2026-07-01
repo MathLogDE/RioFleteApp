@@ -1,20 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import Topbar from "../components/Topbar";
 import StatusBadge from "../components/StatusBadge";
 
-const selStyle = {
-  padding: "8px 10px",
-  fontSize: "0.9rem",
-  border: "1px solid var(--line-strong)",
-  borderRadius: 10,
-  background: "var(--surface)",
-  color: "var(--ink)"
-};
-
 export default function SucursalPanel() {
   const navigate = useNavigate();
+  const { rol } = useAuth();
   const [sucursales, setSucursales] = useState([]);
   const [sucursalSel, setSucursalSel] = useState("");
   const [fleteros, setFleteros] = useState([]);
@@ -60,25 +53,6 @@ export default function SucursalPanel() {
   useEffect(() => {
     cargarPedidos();
   }, [cargarPedidos]);
-
-  async function asignarFletero(pedido, fleteroId) {
-    const esReversa = pedido.tipo === "devolucion" || pedido.tipo === "cambio";
-    // En reversa el estado se queda en 'devolucion_pendiente' (no pasa a 'asignado').
-    const nuevoEstado = esReversa
-      ? "devolucion_pendiente"
-      : fleteroId
-      ? "asignado"
-      : "recibido";
-    const { error } = await supabase
-      .from("pedidos")
-      .update({ fletero_id: fleteroId || null, estado_actual: nuevoEstado })
-      .eq("id", pedido.id);
-    if (error) {
-      setErrorMsg("No se pudo asignar. " + error.message);
-      return;
-    }
-    cargarPedidos();
-  }
 
   // Crea un pedido de logística inversa heredando los datos del original.
   async function crearReversa(origen, tipo) {
@@ -139,15 +113,21 @@ export default function SucursalPanel() {
   const nombreFletero = (id) => fleteros.find((f) => f.id === id)?.nombre_completo;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell wide">
       <Topbar>
+        {rol === "admin" && (
+          <>
+            <button className="linklike" onClick={() => navigate("/admin/altas")}>Altas</button>
+            <button className="linklike" onClick={() => navigate("/admin/usuarios")}>Usuarios</button>
+          </>
+        )}
         <button className="linklike" onClick={() => navigate("/sucursal/nuevo")}>+ Pedido</button>
       </Topbar>
 
       <main className="content">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
           {sucursales.length > 1 ? (
-            <select style={selStyle} value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
+            <select className="select-sm" value={sucursalSel} onChange={(e) => setSucursalSel(e.target.value)}>
               {sucursales.map((s) => <option key={s.id} value={s.id}>{s.codigo} — {s.nombre}</option>)}
             </select>
           ) : (
@@ -175,7 +155,9 @@ export default function SucursalPanel() {
           </div>
         )}
 
-        {estado === "ok" && pedidos.map((p) => {
+        {estado === "ok" && pedidos.length > 0 && (
+        <div className="grid-cards">
+        {pedidos.map((p) => {
           const esFlete = p.metodo_entrega === "flete";
           const esReversa = p.tipo === "devolucion" || p.tipo === "cambio";
           const puedeGenerarReversa =
@@ -204,16 +186,9 @@ export default function SucursalPanel() {
               </div>
 
               {esFlete && (
-                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Fletero:</span>
-                  <select
-                    style={{ ...selStyle, flex: 1 }}
-                    value={p.fletero_id || ""}
-                    onChange={(e) => asignarFletero(p, e.target.value)}
-                  >
-                    <option value="">Sin asignar</option>
-                    {fleteros.map((f) => <option key={f.id} value={f.id}>{f.nombre_completo}</option>)}
-                  </select>
+                <div style={{ marginTop: 10, fontSize: "0.85rem", color: "var(--muted)" }}>
+                  Fletero: <b style={{ color: "var(--ink)" }}>{nombreFletero(p.fletero_id) || "Sin asignar"}</b>
+                  <span style={{ marginLeft: 6, fontSize: "0.78rem" }}>· lo asigna el mostrador</span>
                 </div>
               )}
               {!esFlete && (
@@ -234,7 +209,8 @@ export default function SucursalPanel() {
               {puedeGenerarReversa && reversaFor === p.id && (
                 <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
                   <input
-                    style={{ ...selStyle, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
+                    className="select-sm"
+                    style={{ width: "100%", boxSizing: "border-box", marginBottom: 10 }}
                     placeholder="Motivo (opcional)"
                     value={reversaNota}
                     onChange={(e) => setReversaNota(e.target.value)}
@@ -258,6 +234,8 @@ export default function SucursalPanel() {
             </div>
           );
         })}
+        </div>
+        )}
       </main>
     </div>
   );
